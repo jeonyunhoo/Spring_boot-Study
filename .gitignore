@@ -30,9 +30,6 @@ replay_pid*
 build/
 .gradle/
 target/
-.mvn/
-mvnw
-mvnw.cmd
 
 # IntelliJ IDEA #
 .idea/
