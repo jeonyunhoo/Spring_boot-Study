@@ -350,7 +350,7 @@ This 내장 톰캣 이라고 함. 그냥 main 메서드를 시작하는 것 만�
     - 위치: DB와 연결된 클래스의 컬럼을 설정하는 부분(사실 잘 모름, 수정 필요)
     - 역할: 컬럼 설정. 이게 없으면 기본 세팅됨(아무 제약 조건 없음)
     - 특징: 이름이 아주 직관적임
-12. @GenerateValue
+12. @GeneratedValue
     - 위치: 자동으로 생성되었으면 하는 기본 키의 위
     - 역할: 기본 키를 중복되지 않도록 자동으로 만들어줌
     - 특징: SQL의 auto_incerment과 아주 유사함
@@ -388,3 +388,26 @@ JPA, 지금까지 배운 것들 중 가장 마음에 드는 것이다. DB와 연
 4. 가장 큰 문제 IoC, Bean 부분 추가 설명
     * IoC(Inversion of Control, 제어의 역전): 일반적인 Java는 new 치고 뭐 하고 힘들게 객체를 생성하여 개발자가 제어권을 갖지만 IoC는 제어권을 Spring에게 넘겨 개발자가 객체가 필요하다는 표시를 하면 Spring이 알아서 객체를 생성하고 필요한 곳 까지 연결함, 즉 생성부터 소멸까지 알아서 관리해줌
     * Bean: 컨테이너 내부 Spring이 생성&관리 하는 객체. 이놈이 어떤 클래스를 어떤 Bean으로 등록할 지 표시하는 어노테이션이 존재함(Bean으로 등록시키는 어노테이션 부분 30번 줄)
+
+
+## 실습 단계
+![@SpringBootApplication 실제 모습 및 위치](images/image.png)  
+@SpringBootApplication의 위치  
+'프로젝트이름Application.java' 파일에 위치함(프로젝트 이름에 '-'이 들어갔지만 지워진 형태로 써져있음)  
+
+이론 때 썼던 spring-boot-starter-web은 업데이트를 통해 spring-boot-starter-webmvc로 이름이 바뀜
+
+---
+
+![추가한 의존성의 모습](images/image-1.png)  
+Spring boot를 생성할 때 추가한 의존성들
+
+---
+![연습용 Entity 클래스](images/image-2.png)  
+클래스 위에 @Entity 어노테이션을 달아 이 클래스가 DB의 테이블임을 알림
+
+@Id, @GeneratedValue, @Column등의 어노테이션을 사용해봄(각각의 역할은 위에 정리)  
+빈 생성자는 Spring/JPA(JSON 변환 라이브러리) 같은 프레임워크가 리플렉션을 통해 객체를 동적으로 생성 할 때 필요로 함
+
+![Getter/Setter](images/image-3.png)  
+안정적으로 값을 받기 위해 Getter/Setter를 사용함
