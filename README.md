@@ -324,7 +324,7 @@ This 내장 톰캣 이라고 함. 그냥 main 메서드를 시작하는 것 만�
     - 특징: 개발자가 직접 new 키워드로 객체를 만들지 않아도, 스프링이 미리 만들어둔 부품을 알아서 연결해줌
 5. @PathVariable
     - 위치: 메서드의 파라미터 앞
-    - 역할: 사용자가 주소의 빈칸 자리에 실제로 무언가 적어 보냈을 때 스프링에게 주소 빈 칸에 들어온 값을 받아 자바 변수에 집어넣으라 지시하는 명령어
+    - 역할: 사용자가 주소의 빈칸 자리에 실제로 무언가 적어 보냈을 때 스프링에게 주소 빈 칸에 들어온 값을 받아 자바 변수에 집어넣으라 지시하는 어노테이션(URL 경로에 들어간 값을 파라미터 변수로 바인딩할 때 사용)
     - 특징: ..
 6. @Configuration
     - 위치: @SpringbootApplication으로 인해 잘 사용되지 않음
@@ -411,3 +411,30 @@ Spring boot를 생성할 때 추가한 의존성들
 
 ![Getter/Setter](images/image-3.png)  
 안정적으로 값을 받기 위해 Getter/Setter를 사용함
+
+---
+
+![repository, interface](images/image-4.png)  
+interface로 만든 이유: Spring Data JPA는 애플리케이션이 실행될 때, JpaRepository를 상속받은 인터페이스를 발견하면 인터페이스를 구현할 실제 객체(프록시)를 자동으로 만들어 Spring의 Bean으로 등록함.  
+내용이 비어있는 이유는 이런 형식으로 설계도(interface)를 작성해두면 Spring이 대신 만들어 주는 구조
+
+왜 'long'의 래퍼 클래스 'Long'을 썼는가, Java의 제네릭(<>)은 내부적으로 객체만 받아냄, 하지만 'long', 'int', 'boolean'과 같은 기본형은 객체가 아니기에 기본형을 객체 처럼 보이도록 하는 래퍼 클리스를 사용합니다.  
+
+래퍼 클래스의 종류
+```
+기본 타입   래퍼 클래스
+byte        Byte
+char        Character
+int         integer
+float       Float
+double      Double
+boolean     Boolean
+long        Long
+short       Short
+```
+
+---
+
+![TodoService](images/image-5.png)  
+@Service로 비즈니스 로직을 담당하는 영역을 선언함  
+Service로 넘기기 위한 todoRepository와 생성자
