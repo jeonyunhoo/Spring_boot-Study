@@ -410,7 +410,7 @@ Spring boot를 생성할 때 추가한 의존성들
 빈 생성자는 Spring/JPA(JSON 변환 라이브러리) 같은 프레임워크가 리플렉션을 통해 객체를 동적으로 생성 할 때 필요로 함
 
 ![Getter/Setter](images/image-3.png)  
-안정적으로 값을 받기 위해 Getter/Setter를 사용함
+값을 받기 위해 Getter/Setter를 사용함
 
 ---
 
@@ -422,7 +422,7 @@ interface로 만든 이유: Spring Data JPA는 애플리케이션이 실행될 �
 
 래퍼 클래스의 종류
 ```
-기본 타입   래퍼 클래스
+기본 타입    래퍼 클래스
 byte        Byte
 char        Character
 int         integer
