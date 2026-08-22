@@ -438,3 +438,20 @@ short       Short
 ![TodoService](images/image-5.png)  
 @Service로 비즈니스 로직을 담당하는 영역을 선언함  
 Service로 넘기기 위한 todoRepository와 생성자
+
+---
+
+![Todo.java의 값을 저장소로 옮기기](images/image-6.png)  
+public void save(Todo todo)의 Todo todo는 Todo의 형의 todo 변수에 Todo.java에서 받은 값을 불러옴(privateCode, todoDetail, check 한 번에 불러옴. 즉 받은 모든 값을 가져옴)  
+todoRepository.save(todo): '~.save()'는 괄호 안에 들어있는 변수의 값을 지정한 레파지토리에 저장하는 명령어. todo에 Todo.java에서 받아온 필드값들을 todoRepository에 담는 작업
+
+![todoRepository에 담긴 값을 조회](images/image-7.png)  
+List<> 반환  
+list 형식으로 todoRepository에 담긴 값을 호출하여 반환함
+
+*궁금증*  
+이 'TodoService.java'파일에서는 'Todo.java'의 필드값을 가져와서 todoRepository에 담을 뿐이고, todoRepository에 저장된 값을 가져와서 보여줄 뿐인데 왜 굳이 따로 파일을 만들어야 하나?  
+*답변*  
+일단 파일을 합치는 것은 가능은 함, 하지만 굳이 그렇게 하지 않는 것에는 다 이유가 있음.  
+1. TodoRepository는 interface이고 코드를 작성하지 않음. 왜냐? Spring이 알아서 구현체를 만들어주는 자리이기에 여기에 비즈니스 규칙을 작성하면 구조 자체가 깨져버리기 때문이며, Repository는 DB와 대화하는 것으로 한정됨.
+2. 왜 Todo.java(Entity)에 넣으면 안되는가? 솔찍히 조금만 생각해보면 쉬움. 애초에 Entity로 만든 파일 즉 데이터의 모양과 테이블의 형식을 작성하는 자리에 저장 및 조회 로직을 추가하면 가독성이 떨어짐.
