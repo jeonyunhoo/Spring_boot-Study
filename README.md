@@ -99,13 +99,13 @@ HTTP 요청의 대표적인 방식(Method)
 ### @RequestParam, @PathVariable, @RequestBody
 사용자가 보낸 요청에는 많은 형태로 데이터가 담겨옴. Controller메서드는 그 데이터를 파라미터로 받아야 함, 허나 데이터가 어떤 형태로 왔는지에 따라 받는 방법이 다름
 
-* @RequestParam: URL 뒤에 ?key = value 형태로 붙는 쿼리 파라미터를받을 때 사용.
+* @RequestParam: URL 뒤에 ?key = value 형태로 붙는 쿼리 파라미터를받을 때 사용.  
     ex) /search?keyword=spring 에서 keyword를 받고 싶을 때
-* @PathVariable: URL 경로 자체에 값이 포함되어있을 때 사용.
+* @PathVariable: URL 경로 자체에 값이 포함되어있을 때 사용.  
     ex) /users/3에서 3 이라는 값(사용자 ID)을 URL경로의 일부로 받고 싶을 때. URL 매핑 시 {}로 자리표시를 해둠(예: /user/{id})
 * @RequestBody: 요청의 본문(body)에서 JSON 형태로 담겨 온 데이터를 받을 때 사용됨. 주로 POST, PUT 처럼 새로운 데이터를 생성 및 수정 할 때, 클라이언트가 JSON 형태의 객체 데이터를 보내면 이를 JAVA 객체로 변환해서 받음.
 
-*세 가지 방법의 차이점 요약*  
+*세 가지 방법의 차이점 요약*   
 데이터가 어디(쿼리스트링/URL경로/본문)에 담겨왔는지에 따라 받는 방법이 달라짐
 
 ### ResponseEntity
@@ -475,3 +475,37 @@ list 형식으로 todoRepository에 담긴 값을 호출하여 반환함
 일단 파일을 합치는 것은 가능은 함, 하지만 굳이 그렇게 하지 않는 것에는 다 이유가 있음.  
 1. TodoRepository는 interface이고 코드를 작성하지 않음. 왜냐? Spring이 알아서 구현체를 만들어주는 자리이기에 여기에 비즈니스 규칙을 작성하면 구조 자체가 깨져버리기 때문이며, Repository는 DB와 대화하는 것으로 한정됨.
 2. 왜 Todo.java(Entity)에 넣으면 안되는가? 솔찍히 조금만 생각해보면 쉬움. 애초에 Entity로 만든 파일 즉 데이터의 모양과 테이블의 형식을 작성하는 자리에 저장 및 조회 로직을 추가하면 가독성이 떨어짐.
+
+---
+
+Controller 작성  
+![TodoController, @Restcontroller](images/image-8.png)  
+@RestController로 순수 데이터들이 이동하는 장소임을 정함  
+
+![생성자, TodoService](images/image-9.png)  
+TodoService의 기능을 가져다 쓰기 위해 생성자를 만듦  
+생성자를 만든 이유는 TodoService에서 생성자를 만든 이유와 동일함
+
+![Post/GetMapping](images/image-10.png)  
+TodoServise의 saveTodo, getAllTodos의 기능을 모두 가져옮  
+사용자로 하여금 Post, /todos의 요청이 오면 createTodo를, Get, /todos의 요청이 오면 getTodo를 실행시켜 각각의 결과를 보임
+
+---
+
+![application.properties](images/image-11.png)  
+spring.datasource.url=jdbc:h2:mem:todo_db: 테스트용 데이터베이스 이름  
+spring.jpa.hibernate.ddl-auto=create: 테스트를 위해 애플리케이션을 실행 할 때 마다 테이블을 새로 갈아엎는 것(ddl_auto의 create, update, validata, none 중 create)  
+
+spring.h2.console.enabled=true: 편의성 기능, H2를 직접 볼 수 있는 화면(콘솔)을 웹 브라우저로 제공하는 기능(직접 DB를 볼 수 있음)  
+spring.jpa.show-sql=true: 편의성 기능, Hibernate가 내부적으로 어떤 SQL을 생성하는지 콘솔 로그에 그대로 출력하여 보여줌  
+
+실무에서는 편의성 두 가지는 제거하고 배포해야 함  
+spring.h2.console.enabled=true 이유: 실무에서는 H2가 아닌 MySQL같은 것을 쓰기에 H2콘솔 자체가 아무 의미가 없어짐. 또한 외부에서 /h2-console에 접근하여 실제 사용자가 데이터를 볼 수 있는 통로가 열리는 것과 같음.  
+spring.jpa.hibernate.ddl-auto=create 이유: 보안보다는 성능에서 문제가 생기는데, 로그의 양과, 아주 미세하지만 SQL의 로그로 남기는데에도 성능을 갉아먹음
+
+---
+
+![실행](images/image-12.png)  
+Tomcat started on port 8080: 내장 톰캣이 정상 실행됨  
+H2 console available at '/h2-console'. Database available at 'jdbc:h2:mem:todo_db': 방금 설정한 H2 콘솔과 데이터베이스 이름(todo_db)가 반영되어 켜짐  
+Started SpringbootPractice2Application in 3.728 seconds → 애플리케이션이 완전히 실행 완료됐다는 최종 확인 메시지
