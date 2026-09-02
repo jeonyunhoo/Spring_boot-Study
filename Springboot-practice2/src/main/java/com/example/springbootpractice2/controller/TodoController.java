@@ -1,4 +1,4 @@
-package com.example.springbootpractice2.domain.controller;
+package com.example.springbootpractice2.controller;
 
 import com.example.springbootpractice2.domain.Todo;
 import com.example.springbootpractice2.service.TodoService;
