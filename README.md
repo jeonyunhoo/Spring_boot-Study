@@ -509,3 +509,38 @@ spring.jpa.hibernate.ddl-auto=create 이유: 보안보다는 성능에서 문제
 Tomcat started on port 8080: 내장 톰캣이 정상 실행됨  
 H2 console available at '/h2-console'. Database available at 'jdbc:h2:mem:todo_db': 방금 설정한 H2 콘솔과 데이터베이스 이름(todo_db)가 반영되어 켜짐  
 Started SpringbootPractice2Application in 3.728 seconds → 애플리케이션이 완전히 실행 완료됐다는 최종 확인 메시지
+
+---
+
+![postman](images/image-13.png)  
+데이터를 보내고 저장을 테스트 하기 위한 세팅  
+POST로 데이터를 보내고  
+'http://localhost:8080/todos' 이전에 만들어두었던 서버 주소와, "/todos"의 주소에 POST 신호를 보내 createTodo를 실행시킴  
+
+---
+
+문제 상황 발생  
+![문제 상황](images/image-14.png)  
+POST로 데이터를 전송했지만, DB가 생성되지 않아 저장할 공간이 생기지 않음.  
+
+![application.properties, 추가](images/image-15.png)  
+spring.datasource.url=jdbc:h2:mem:todo_db에 ':DB_CLOSE_DELAY=-1'을 추가함.  
+
+DB_CLOSE_DELAY=-1란?  
+Spring boot 서버는 요청이 없을 때는 DB와의 연결을 유지하지 않으려고 하며, H2의 특성상 데이터가 날아갈 수 있음.  
+하지만 저 구문은 '서버의 실행이 완전히 종료되기 전 까지는 데이터를 지우지 말라'라는 뜻을 주며 '-1'이 "무기한 유지"를 뜻하는 값.
+
+하지만, 저 구문을 추가했음에도 계속하여 오류가 발생함  
+![check 오류](images/image-16.png)  
+위 이미지의 마지막 구문
+```
+Caused by: org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement 
+"create table todo (check boolean [*]not null, private_code bigint not null, todo_detail varchar(255), primary key (private_code))"
+```
+영어로 쏼라쏼라 써져있지만 의미만 보자면 'check'라는 필드의 이름에서 문제가 생겼다는 것임.  
+왜 오류가 생겼느냐? SQL 문법 중 check라는 예약어가 존재했고, 그리하여 충돌이 일어났던 것.  
+
+![cheak 어노테이션 추가](images/image-17.png)  
+@Column(name = "is_checked")라는 어노테이션을 추가함, 딱 봐도 알 수 있듯이 컬럼 이름을 "is_checked"로 설정함
+
+---
