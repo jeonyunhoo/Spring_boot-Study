@@ -15,6 +15,7 @@ public class Todo {
     @Column(length=255)
     private String todoDetail;
 
+    @Column(name = "is_checked")
     private boolean check;
 
     public Todo() {
