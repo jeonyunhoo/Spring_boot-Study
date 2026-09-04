@@ -381,7 +381,7 @@ JPA, 지금까지 배운 것들 중 가장 마음에 드는 것이다. DB와 연
 그리고 아까 설명한 JPA에 대하여 추가로 기억난 것이있다. @Entity인데 이것의 위치는 Java의 클래스를 DB의 클래스와 매핑? 하는 것이다. 하나의 @Entity당 하나의 테이블이다.  
 그리고 순수 데이터 전송 공간을 선언하는 어노테이션이 있었는데 아마도 @RestController였던 것으로 기억난다. 이건 @Responsabody? 이것과 @Controller가 합쳐진 것이고 @Controller와 비교하였을 때 @Controller는 사용자로 하여금 데이터를 받았을 떄 그것을 이름 자체로 기억을 하여 그에 맞는 HTML과 연결한다는 식으로 기억을 하고 있고 @RestController는 전달 받은 데이터를 순수한 데이터(텍스트나 JSON)로 받아들여 다른 하위 어노테이션이 받도록 영역을 선언하는 느낌이었던 것 같다.
 #### 틀린 부분 다시 집기
-(순서는 아주 뒤죽박죽)
+(순서는 아주 뒤죽박죽)  
 1. @Transactiona이 아닌 @Transactional이다.
 2. 258번 줄 'DB의 클래스와 매핑?'이 아닌 'DB의 테이블과 매핑'이다. 좀 멍청한 실수....
 3. @RestController 부분 '@Responsabody?'가 아닌 '@ResponseBody' 영어 실력이 문제인 듯 하다
@@ -403,7 +403,7 @@ IoC가 던져주고 Spring이 관리하는 부분은 IoC 컨테이너
 JpaRepository 인터페이스에서 상속 받는 뭐 그런 것도 있다.  
 더이상 기억이 나지 않는다
 #### 틀린 부분 다시 집기
-(순서는 뒤죽박죽)
+(순서는 뒤죽박죽)  
 1. 압축 방법을 통해 파일록 묶고 뭐시기(397번 줄), '.jpa'파일이 아닌 '.jar'파일로 묶이게 됨, 또한 묶는 방법? 묶는 도구를 Gradle이라고 하며 Spring Boot에 추가되어 있음(279번 줄)
 2. 의존성에 getter/setter는 관계 없음 직접적인 동일 개념이 아니고 과거에 setter 방법을 사용했었음
 3. @SpringbootApplication 아까 '@Springboot 어쩌고' 이랬던 부분, 이건 컴포넌트 스캔으로 @Restcontroller, @Service, @Repositoty 등의 어노테이션이 붙은 클래스들을 자동으로 찾아 Bean으로 등록시킴
@@ -544,3 +544,96 @@ Caused by: org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statemen
 @Column(name = "is_checked")라는 어노테이션을 추가함, 딱 봐도 알 수 있듯이 컬럼 이름을 "is_checked"로 설정함
 
 ---
+  
+![get결과 postman 터미널](images/image-18.png)
+![get결과 intellij 터미널](images/image-19.png)    
+POST로 데이터를 보낸 후, GET 요청을 보냈을 때 POST로 보낸 데이터가 순수 데이터(JSON)으로 돌아온 것을 확인
+
+잘 보면 intellij 터미널 이미지에서 'insert into todo...'처럼 SQL 문장이 써져있는 것을 볼 수 있으며 이것이 POST의 기능이고 Spring boot(Hibernate)가 만들어준 자동 SQL 구문임을 알 수 있다.  
+또한 'select t1_0.private_code...'처럼 조회하는 SQL문까지 GET으로 가져온 것을 확인할 수 있다.  
+
+*POST 흐름*
+```
+Postman으로 Post 요청 전송
+    -> createTodo(@RequestBody Todo todo)
+    -> todoService.saveTodo(todo)
+    -> public void saveTodo(Todo todo) (JpaRepository의 기본 기능 '.save')
+```
+위 과정을 통해 POST 요청이 들어가고 결국 'Hibernate'에게 신호가 가며 '.save'를 보고는 저장함을 판단하고 insert문을 생성 및 실행함  
+
+*GET 흐름*  
+```
+Postman으로 Get 요청 전송
+    -> getTodo()
+    -> todoService.getAllTodos()
+    -> return todoRepository.findAll() (JpaRepository의 기본 기능 '.findAll')
+    -> getTodo()로 돌아와 결과값 반환(return)
+```
+위 과정을 통해 GET 요청이 들어가고 결국 'Hibernate'에게 신호가 가며 'findAll'을 보고 조회를 판단하고 select문을 생성 및 실행하고 값을 반환함  
+
+---
+
+Update 생성  
+
+![todoService, Update](images/image-20.png)  
+todoService에 updateTodo를 만들어 수정이 가능하도록 만듦.  
+'Long id'로 id(Todo테이블의 id)를 받아오고 'Todo changeThing'으로 변경할 내용, check나 todoDetail을 받아옴  
+
+마지막으로 todoRepository.save()를 쓰며 받아온 수정 내용을 DB에 저장함
+
+![todoController, Update](images/image-21.png)  
+@PutMapping으로 수정하는 메서드임을 알림.  
+또한 id의 앞에 @PathVariable을 이용하여 주소의 일부로 사용함(99번줄에 자세히 설명)  
+todoService.updateTodo()를 불러내며 값을 수정하도록 함
+
+---
+
+Delete 생성
+
+![todoService, Delete](images/image-22.png)  
+todoService에 deleteTodo를 만들어 삭제가 가능하도록 함.  
+Update와는 다르게 Long id로 바로 id를 받아와 '.deleteById'를 이용하여 바로 제거함  
+
+![todoController, Delete](images/image-23.png)  
+@DeleteMapping으로 제거하는 메서드임을 알림.  
+또한 id의 앞에 @PathVariable을 이용하여 주소의 일부로 사용함.  
+todoService.deleteTodo()를 불러내 데이터를 제거함  
+
+---
+
+CRUB 테스트  
+
+### POST
+
+![로컬 호스트 서버 실행](images/image-24.png)  
+로컬 호스트 서버 실행
+
+![Post, insert](images/image-25.png)  
+Post을 호출하여 'insert'구문을 실행함  
+
+![Post, 보낸 데이터](images/image-26.png)  
+Post으로 전송한 데이터
+
+### GET
+
+![Get, select](images/image-27.png)  
+Get을 호출하여 'select'구문을 실행함
+
+![Get, 저장된 값](images/image-28.png)  
+Get으로 확인한 저장된 데이터
+
+### UPDATE(PUT)
+
+![Update, update](images/image-29.png)  
+Update를 호출하여 값을 수정함
+
+![수정된 값](images/image-30.png)  
+구문이 'CRUB TEST'에서 'CRUB TEST 수정'으로 변경되었으며 check가 false로 변경됨을 알 수 있음.
+
+### DELETE
+
+![Delete](images/image-31.png)  
+특정 주소에 있는 값을 지우도록 함
+
+![공백](images/image-32.png)  
+값을 삭제하여 남아있는 것이 없음을 확인함
