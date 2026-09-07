@@ -522,13 +522,17 @@ POST로 데이터를 보내고
 문제 상황 발생  
 ![문제 상황](images/image-14.png)  
 POST로 데이터를 전송했지만, DB가 생성되지 않아 저장할 공간이 생기지 않음.  
+(이미지의 "org.h2.jdbc...(중략).. Table "TODO" not found ~"부분에 TODO테이블을 찾을 수 없다고 명확하게 쓰여있음) 
+
+일전에 서버가 구축될 때 'created table...'문구가 있었음, 하지만 사용하려고 했을 때 찾을 수 없다고 하는 것, 이건 H2의 특성인 '휘발성'을 고려해 볼 수 있음.  
+H2의 특성상 생성 및 사용 후 연결이 끊겼을 때 데이터를 유지하지 않고 지움.  
+그로 인해 테이블이 지워졌다고 가정.
 
 ![application.properties, 추가](images/image-15.png)  
 spring.datasource.url=jdbc:h2:mem:todo_db에 ':DB_CLOSE_DELAY=-1'을 추가함.  
 
 DB_CLOSE_DELAY=-1란?  
-Spring boot 서버는 요청이 없을 때는 DB와의 연결을 유지하지 않으려고 하며, H2의 특성상 데이터가 날아갈 수 있음.  
-하지만 저 구문은 '서버의 실행이 완전히 종료되기 전 까지는 데이터를 지우지 말라'라는 뜻을 주며 '-1'이 "무기한 유지"를 뜻하는 값.
+'서버의 실행이 완전히 종료되기 전 까지는 데이터를 지우지 말라'라는 뜻을 주며 '-1'이 "무기한 유지"를 뜻하는 값.
 
 하지만, 저 구문을 추가했음에도 계속하여 오류가 발생함  
 ![check 오류](images/image-16.png)  
@@ -537,8 +541,10 @@ Spring boot 서버는 요청이 없을 때는 DB와의 연결을 유지하지 �
 Caused by: org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement 
 "create table todo (check boolean [*]not null, private_code bigint not null, todo_detail varchar(255), primary key (private_code))"
 ```
-영어로 쏼라쏼라 써져있지만 의미만 보자면 'check'라는 필드의 이름에서 문제가 생겼다는 것임.  
-왜 오류가 생겼느냐? SQL 문법 중 check라는 예약어가 존재했고, 그리하여 충돌이 일어났던 것.  
+저 부분에 'Syntax error' 즉 구문 오류가 있다는 뜻, 아래 친절히 문제 내용을 보여주니 읽어보자.  
+잘 써지다가 'check boolean [ * ]...'어라? [ * ]라는건 내가 쓴 적이 없는데 표시된걸 보아하니 저 언저리에서 멈춤 것을 보니 저 부분쪽이 문제겠구나 싶어 웹 서핑을 한 결과,  
+"check: 테이블의 컬럼에 입력될 수 있는 값의 범위나 조건을 제한하는 도메인 무결성 도구"  
+이미 SQL에 존재하는 예약어를 내가 이름으로 사용해서 생긴 문제이구나 임을 확인함
 
 ![cheak 어노테이션 추가](images/image-17.png)  
 @Column(name = "is_checked")라는 어노테이션을 추가함, 딱 봐도 알 수 있듯이 컬럼 이름을 "is_checked"로 설정함
