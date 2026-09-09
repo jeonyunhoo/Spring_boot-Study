@@ -643,3 +643,59 @@ Update를 호출하여 값을 수정함
 
 ![공백](images/image-32.png)  
 값을 삭제하여 남아있는 것이 없음을 확인함
+
+---
+
+### 예외처리(PUT, 존재하지 않는 아이디 요청)
+
+존재하지 않는 값 수정을 요청  
+![PUT, 존재하지 않는 값](images/image-33.png)  
+
+당연하게도 오류가 남  
+![intellij, 터미널](images/image-34.png)  
+'No value present' 이미지에도 나오듯 존재하지 않는 값이라 에러가 났다고 알림
+
+![Postman, 에러](images/image-35.png)  
+```
+"status": 500,
+"error": "Internal Server Error"
+```
+아주 잘 에러가 나 준 모습이다.  
+
+그럼 이제 예외 처리를 만들어 줄 것인데,  
+![TodoNotFoundException](images/image-36.png)  
+간단하게 써 준다.  
+"에엥? 갑자기 니가 쓴 적도 없는 'RuntimeException'을 상속 받고 'super(message)'를 쓰냐?"  
+라고 생각 할 수 있는데 이 'RuntimeException'은 자바에서 이미 만들어진 예외를 표현하는 클래스들 중 하나이다. 아무튼간에 얘는 뭐 하는 애 인가? 궁금해한다면  
+RuntimeException은 프로그램 실행 줄 발생하는 일반적인 오류를 표현하는 대표적인 클래스임.  
+(NullPointerException, NoSuchElementException과 같은 실습 과정에서 본 그것들이 거의 전부 RuntimeException의 자손 클래스임)
+
+그럼 왜 이걸 상속 받았느냐?  
+이렇게 상속을 받으면 이 클래스는 RuntimeException의 한 종류이다. 라고 선언한 것이고, 이는 RuntimeException이 갖고 있던 기능들을 내가 작성한 클래스에서도 사용할 수 있게된 셈이다.(.getMessage, throw로 던지고 catch나 @ExceptionHandler로 잡을 수 있는 성질 등)
+
+그럼그럼 이제 'super(message)'가 뭐냐?  
+일단 super는 아니까 넘어가고, 내가 작성한 이 코드들을 아무리 눈 씻고 찾아봐도 이 예외가 왜 발생했는지 설명하는 문자열을 받아서 어떻게 저장을 하고 하는 등의 길고 현학적인 코드를 짠 적이 없는데 아주 좋게 RuntimeException에 이 기능이 있다. 그래서 뭐 super(message)로 문자열을 보내주면 알아서 딱딱 해준다. 이겁니다.
+
+![GlobalExceptionHandler](images/image-37.png)  
+이건 뭐냐, 싶을 수도 있음. 왜냐 이미 위에 있는 클래스에서 예외 처리 구문을 만들지 않았느냐? 그런데 보면 알 수 있듯이 불러오기만 할 뿐 출력을 한다거나, 사용자에게 에러 내역을 보여주는 것을 존재하지 않음. 그래서 이 클래스를 만듦.  
+
+이번에는 어노테이션들이 눈에 띌 텐데, 설명하기는 귀찮으니 위에 있는 것을 읽도록(254번줄)
+
+하지만 여기서 설명해야 할 것이 하나 있는데 '@ExceptionHandler(TodoNotFoundException.class)'바로 이것, "앵 아까는 설명하기 귀찮다면서 왜 설명함?" 왜냐하면 어노테이션 자체의 설명은 해놓았지만 뒤에 이어지는 괄호 부분은 위에 설명이 없기 때문.  
+아주 간단하게 설명하자면 이 메서드가 어떤 에러 클래스의 값을 가져오는가? 구문을 가져오는가? 라고 생각하면 편함. 사실 어떻게 더 설명해야 할 지 모르겠음  
+
+그럼 '.status(HttpStatus.NOT_FOUND).body(ex.getMessage())'이 뜬금없이 나온 이 친구가 궁금할 수 있는데 하나하나 뜯어서 써봅시다.
+
+1. ResponseEntity, 위에 정리 되어있지만 응답을 세밀하게 만들 수 있는 도구.
+2. .status(...): 그 도구에게 상태 코드를 이러하게 정해달라 지시하는 것
+3. HttpStatus.NOT_FOUND: "404"라는 숫자를 자바 코드에서 이름으로 표현한 것. 음.. 그냥 404로 써도 되는데 왜 이렇게 쓰냐 하면 저 이름에도 명시 되어 있듯이 "아 이건 찾을 수 없구나"하고 보기 좋도록 하는 것.
+4. ex: 매개변수로 받아온 것
+5. ex.getMessage(): 저 위에 RuntimeException에서 썼던 그 예외가 만들어질 때 super(message)로 저장했던 문자열을 꺼내오는 것
+7. .body(...): 문자열을 응답의 본문으로 넣어줌
+
+이렇게 풀어놓으니까 별것 없죠?
+
+자 이제 작성한 코드가 잘 작동 하는지, 실행을 해 보면
+
+![Post, 성공](images/image-38.png)  
+아주 깔끔하게 오류 문자가 정상 출력 되는 것을 확인할 수 있음. 문제가 없는게 좋기는 한데, 트러블 슈팅 솔찍히 해보고 싶었음
