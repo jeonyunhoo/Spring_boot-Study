@@ -1,6 +1,7 @@
 package com.example.springbootpractice2.service;
 
 import com.example.springbootpractice2.domain.Todo;
+import com.example.springbootpractice2.exception.TodoNotFoundException;
 import com.example.springbootpractice2.repository.TodoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -36,7 +37,8 @@ public class TodoService {
     // CRUD 중 U(update 수정)
     public void updateTodo(Long id, Todo changeThing) {
 
-        Todo existingTodo = todoRepository.findById(id).get();
+        Todo existingTodo = todoRepository.findById(id)
+                .orElseThrow(() -> new TodoNotFoundException("해당 id의 할 일을 찾을 수 없습니다: " + id));
         existingTodo.setTodoDetail(changeThing.getTodoDetail());
         existingTodo.setCheck(changeThing.isCheck());
         todoRepository.save(existingTodo);
