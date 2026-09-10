@@ -4,6 +4,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 
 @Entity
 public class Todo {
@@ -12,15 +14,14 @@ public class Todo {
     @GeneratedValue
     private long privateCode; // 함부로 접근하지 못하도록 private로 설정
 
+    @NotBlank(message = "내용은 빈칸일 수 없습니다.")
     @Column(length=255)
     private String todoDetail;
 
     @Column(name = "is_checked")
     private boolean check;
 
-    public Todo() {
-
-    }
+    public Todo() {}
 
     public long getPrivateCode() {
 

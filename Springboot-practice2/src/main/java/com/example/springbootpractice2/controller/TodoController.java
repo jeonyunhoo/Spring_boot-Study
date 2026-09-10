@@ -2,6 +2,7 @@ package com.example.springbootpractice2.controller;
 
 import com.example.springbootpractice2.domain.Todo;
 import com.example.springbootpractice2.service.TodoService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,7 +20,7 @@ public class TodoController {
     }
 
     @PostMapping("/todos")
-    public void createTodo(@RequestBody Todo todo) {
+    public void createTodo(@RequestBody @Valid Todo todo) {
 
         todoService.saveTodo(todo);
     }
