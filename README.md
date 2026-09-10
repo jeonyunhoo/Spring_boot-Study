@@ -699,3 +699,125 @@ RuntimeException은 프로그램 실행 줄 발생하는 일반적인 오류를 
 
 ![Post, 성공](images/image-38.png)  
 아주 깔끔하게 오류 문자가 정상 출력 되는 것을 확인할 수 있음. 문제가 없는게 좋기는 한데, 트러블 슈팅 솔찍히 해보고 싶었음
+
+---
+
+### 제약 조건(POST, @NotBlank + @Valid)
+
+![POST, 공백 등록 성공](images/image-39.png)  
+아무런 값을 보내지 않아도 너무나도 잘 보내짐.  
+
+---
+문제 상황 발생
+
+![NotBlank를 불러올 수 없음](images/image-40.png)  
+여기서 문제가 하나 발생함, 이상하게도 NotBlank가 되지 않음. 그래서 import 문제인가 하고 import문을 봤지만 Validation 부터 오류가 떠 있음  
+이런 상황에서 내가 생각해 볼 수 있는 것은 딱 하나 '의존성 추가가 안 되었나?'  
+바로 build.gradle 파일을 확인해 봄
+
+![build.gradle, 의존성 확인](images/image-41.png)  
+역시나 의존성이 추가 되어있지 않음  
+
+![의존성 추가](images/image-42.png)  
+바로 구글링으로 의존성 추가 방법을 찾아 추가함
+```
+implementation 'org.springframework.boot:spring-boot-starter-validation'
+```
+다시 파일로 돌아가서 확인해 보면  
+![NotBlank 불러오기 성공](images/image-43.png)  
+아주 정상적으로 불러와 진 것을 확인할 수 있음  
+
+---
+
+그럼 다시 돌아와서 실행 해 보면  
+![POST, 빈 칸이라 등록 실패](images/image-44.png)  
+역시나 오류가 뜨며 실패한 모습이다.  
+
+그런데, 오류 구문을 자세히 보면
+```
+500 Internal Server Error
+웹 서버가 요청을 처리하는 도중 예상치 못한 문제에 부딪혀 요청을 완료하지 못했음
+```
+의미까지 보면 저렇게 되어있는데 말 그대로 그냥 @NotBlank가 오류 검증을 잡아 내면서 바로 '꺼져 이 맞지 않는 더러운 데이터야'라고 팽 시킨 것이다.  
+
+그럼 어떻게 해야 깔끔하게 돌려 보낼 수 있을까 하면 우리 @NotBlank의 동업자 어노테이션인 @Valid를 작성해 주면 된다.  
+
+![@Valid 추가](images/image-45.png)  
+이 처럼, @RequestBody 뒤에 작성해 주면 된다. 이러고 다시 POST 요청을 보내면?  
+
+![POST, 400에러](images/image-46.png)  
+아까와는 다르게 400에러가 뜬다
+```
+400 Bad Request
+웹 서버가 클라이언트(사용자의 브라우저나 앱)의 요청(Request) 형식이 잘못되었거나 이해할 수 없어 처리를 거부한다는 HTTP 상태 코드
+```
+이는 즉 맞지 않는 데이터라고 팽 시킨게 아니고 이유를 알려주며 돌아가라 말 한 격이다. 아까는 꺼지라며 돌려 보낸 것에 비해 아주 순해진 것을 확인할 수 있다.  
+하지만 아직도 불친절하다. 사용자가 '400 Bad Request'라는 오류를 보면 검색하는 것이 아닌 '뭐라는거야'하며 넘어갈 정도의 불친절함이다. 이를 어떻게 해결하는가, 바로 이전에 썼던 예외 처리를 여기서도 써먹으면 된다.
+
+![예외 처리](images/image-47.png)  
+잘 보면 이전과 거의 똑같은데, 잘 보면 'BAD_REQUEST'나 클래스의 이름 정도가 다르다.  
+'예전에는 클래스 하나 만들었는데 이번에도 만들었겠지?' 생각할 수 있는데 이 'MethodArgumentNotValidException'는 내가 만들지 않았다.  
+왜냐 하면, 저 예외는 Spring에 이미 만들어져 있는 클래스이기에 
+```
+import org.springframework.web.bind.MethodArgumentNotValidException;
+```
+이처럼 import만 잘 써주면 클래스를 작성해 줄 필요 없이 사용 가능하다.
+
+다시 실행해 주면......  
+![장황한 에러 내용](images/image-48.png)  
+음.. 내가 생각했던 그 길이가 아닌 엄청나게 긴 에러 상황이 나온다.  
+대체 왜? 라고 물으면 
+```
+Spring이 내부적으로 자동 생성한 예외입니다. Spring은 이 예외를 만들 때, "어떤 메서드의 몇 번째 매개변수에서, 어떤 필드가, 어떤 이유로 실패했는지"를 아주 상세하게(그리고 프로그래밍적으로) 기록해서 메시지에 담습니다. 그래서 .getMessage()를 호출하면, 사람이 읽기엔 불편하지만 기계적으로는 매우 정확한 정보가 통째로 나오는 것입니다.
+```
+라고 한다. 요컨데 Spring에서 직접 만든 에러이기에 Spring이 만든 직접적인 message를 가져오도록 하면 100점짜리 기계적인 오류 정보가 출력된다는 것이다.  
+그럼 어떻게 해결하냐?  
+```
+ex.getMessage()는 "이 시험에서 뭐가 틀렸는지 전부 설명이 빽빽하게 적힌 종이 한 장"을 통째로 주는 것이고, ex.getBindingResult()는 "틀린 문제들만 정리된 채점표"를 주는 것에 가깝습니다. 우리는 그 채점표에서 "몇 번 문제가 틀렸고, 어떤 실수였는지"를 하나씩 꺼내 쓸 수 있습니다.
+```
+일단 이 상황을 이해 해야 해결이 가능한데... 아 음...  
+요약하자면 'getMessage()'는 모범 답안 그런데 너무 세밀한. 정도이고 '.getBindingResult()'는 문제에 대한 정답만 알려주는 답안. 정도라고 생각하면 될 것 같음  
+
+그러면 이제 문제 상황을 다시 직면 해서 어떻게 해결하느냐?  
+```
+ex.getBindingResult().getFieldError().getDefaultMessage()
+```
+이걸 body 자리에 넣어주고
+
+```
+@NotBlank(message = "원하는 문장")
+```
+이렇게 써주기만 하면 된다.  
+
+'쓰기만 하지 말고, 설명을 해라!'  
+그럼 하나하나 뜯어서 보자.
+
+1. .getBindingResult()
+    - 검증 실패 정보들이 모여있는 결과 묶음을 가져옴
+2. .getFieldError()
+    - 그 묶음 중에서 "실패한 필드 정보 하나"를 꺼냄
+    (여러 개를 실패할 수도 있지만, 지금은 하나뿐)
+3. .getDefaultMessage()
+    - 이름 그대로 그 필드 오류에 할당 된 기본 메시지를 꺼내옴
+
+그리고 @NotBlank 뒤에 작성된 message가 설정된 기본 문장.  
+참 쉽죠?  
+
+실제 작성된 코드를 확인 하면
+```
+** Todo.java
+@NotBlank(message = "내용은 빈칸일 수 없습니다.")
+@Column(length=255)
+private String todoDetail;
+
+** GlobalExceptionHandler.java
+@ExceptionHandler(MethodArgumentNotValidException.class)
+public ResponseEntity handlerMethodArgumentNotValid(MethodArgumentNotValidException ex) {
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getBindingResult().getFieldError().getDefaultMessage());
+}
+```
+이런 모습이다. 이제 바로 실행해 보면?
+
+![간략해진 오류 구문](images/image-49.png)  
+설정해 놓은 기본 메시지로 잘 출력되는 모습이다.
