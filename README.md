@@ -1,5 +1,7 @@
 # Spring boot study
 
+수정할 것 - 지금 파일 기준 가장 아래 POST 이미지 없음
+
 ## Spring boot란?
 
 Spring Framework는 자바 기반의 애플리케이션을 만들기 위한 프레임워크이다. 강력하지만 초기 설정(XML 설정, 라이브러리 버전 관리, 서버 배포 설정 등)이 매우 복잡하다는 단점이 있었음. 그리고 이 단점을 해결하기 위해 나온 도구가 Spring boot.
@@ -410,7 +412,7 @@ JpaRepository 인터페이스에서 상속 받는 뭐 그런 것도 있다.
 4. @Varchar 애초에 존재하지 않은 어노테이션임, @Valid가 기억이 안 났을 뿐임
     - 부가 설명: 값의 유효성을 검증하는 어노테이션으로는 @Size, @NotNull, @Email 등등 존재
 
-## 실습 단계
+## 실습 단계1 - H2 Database
 ![@SpringBootApplication 실제 모습 및 위치](images/image.png)  
 @SpringBootApplication의 위치  
 '프로젝트이름Application.java' 파일에 위치함(프로젝트 이름에 '-'이 들어갔지만 지워진 형태로 써져있음)  
@@ -821,3 +823,133 @@ public ResponseEntity handlerMethodArgumentNotValid(MethodArgumentNotValidExcept
 
 ![간략해진 오류 구문](images/image-49.png)  
 설정해 놓은 기본 메시지로 잘 출력되는 모습이다.
+
+## 실습 단계2 - MySQL 연동
+
+H2 database로 적당히 해봤으니 이제는 MySQL과 연결해서 사용해 볼것임.  
+가볍게 종속성은 두 개 정도 필수만 챙겨주기
+```
+Spring Data JPA
+MySQL Driver
+```
+편의성이고 뭐고 일단 진짜 필요한 것만 추가함 필요한 건 그 때 가서 추가하는걸로 함.
+
+그럼 지금 SQL에서 할 것이
+1. database생성(spring_prc_db)
+2. user 생성(SpringAdmin1)
+3. 권한 부여                            
+
+![MySQL | DB 생성, 유저 생성, 권한 부여](images/image-50.png)  
+이렇게 다 만들어 줬다면 다음으로는 Spring boot와 연결해 줄 차례.
+
+![ddl-auto가 없는 모습](images/image-51.png)  
+하지만 ddl-auto가 없기 때문에 굳이 받아오지 않고 SQL에서 테이블을 만들어줘야 함. Spring boot와 연결 전에 생성하기로 함.
+
+![SQL테이블 구성](images/image-52.png)  
+깔끔하게 테이블을 만들어 준 후  
+
+![desc, 구조확인](images/image-53.png)  
+desc로 구조를 확인해 주면 잘 생성된 것을 확인할 수 있다.
+
+그럼 이제 진짜로 Spring boot와 연동을 시킬 것인데, 어떻게 하는지 모름  
+
+![application.properties, sql 연결](images/image-54.png)  
+구글링과 AI를 통한 작성, 하나하나 보자면
+
+1. spring.datasource.url=jdbc:mysql://localhost:3306/spring_boot_prc
+    - sql의 url을 작성, 'jdbc:mysql://localhost:3306/'까지는 기본적으로 같음(3306은 포트 번호, 기본값) 그 뒤에는 사용할 데이터베이스를 작성(아까 만든 spring_boot_prc 작성)
+2. spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+    - 이거는 이제 Spring과 MySQL을 이어주는 jdbc 드라이버의 이름
+3. spring.datasource.username=SpringAdmin1
+    - SQL에서 생성한 user 이름
+4. spring.datasource.password=12345
+    - user의 비밀번호
+5. spring.jpa.hibernate.ddl-auto=none
+    - 추가한 적은 없지만 일단 ddl-auto를 끔
+
+이정도로 볼 수 있고, 이제 그럼 코드를 작성할 차례.
+
+---
+
+### 코드 작성
+
+![Todo 코드](images/image-55.png)  
+![TodoService 코드](images/image-56.png)
+![TodoRepository 코드](images/image-57.png)
+
+---
+
+문제 상황 발생
+
+![@RestController error](images/image-58.png)  
+갑자기 @RestController가 사용되지 않음, @PostMapping도 마찬가지.  
+이번에도 종속성을 가장 먼저 의심해 봄
+
+![종속성](images/image-59.png)  
+음... 그냥 딱 보면 잘 모르겠지만, 구글링 결과 @RestController는 'Spring Web' 종속성이 필수라고 함.
+```
+implementation 'org.springframework.boot:spring-boot-starter-web'
+```
+그럼 한치에 망설임도 없이 바로 작성하고 확인해 보면?
+
+![해결](images/image-60.png)  
+아주 깔끔하게 해결된 것을 확인할 수 있음.
+
+---
+
+![TodoController 코드](images/image-61.png)  
+
+이번에는 하는 김에 예외 처리까지 했던 부분까지 완성할 예정  
+저번과 똑같이 TodoNotFoundException.java 파일을 만들었는데  
+![TodoNotFoundException 코드](images/image-62.png)  
+알아서 완성 되어있는 모습. 원래 이랬나? 넘어가고
+
+![에러 헨들러](images/image-63.png)  
+대강 다 완성해 주고 이제 Postman으로 테스트
+
+---
+
+문제 상황 발생
+
+문제가 한 두개가 아님
+```
+org.hibernate.exception.SQLGrammarException
+Caused by: java.sql.SQLSyntaxErrorException
+org.springframework.beans.factory.BeanCreationException
+Caused by: org.hibernate.service.spi.ServiceException
+Caused by: org.hibernate.HibernateException
+```
+아. 하기 싫다  
+차근차근 생각해보자, 
+- SQLGrammarException: 하이버네이트(Hibernate)나 JPA에서 데이터베이스로 보낸 SQL 쿼리에 문법 오류가 있거나 잘못된 객체를 참조했을 때 발생하는 예외
+- SQLSyntaxErrorException: SQL 문법 규칙을 위반했거나 잘못된 데이터베이스 명령어를 실행했을 때 발생하는 자바(Java) 예외
+- BeanCreationException: 얘는 뭐냐
+- ServiceException: 프로그램이 외부 서비스나 서버에 요청을 보냈지만, 처리 과정에서 문제가 생겼음을 알려주는 오류
+- 자바 ORM 프레임워크인 하이버네이트(Hibernate)에서 데이터베이스 연동 및 영속성 계층 처리 중 발생하는 모든 예외의 최상위(기본) 클래스
+
+고로 SQL부분에서 모든 문제가 터졌다고 봐도 무방하다. 뭔지 모르겠는 저 오류도 'BeanCreate'만 봐도 대충 감은 온다.
+
+그럼 이제 이걸 어떻게 해결하는지가 관건인데, 일단 내가 생각할 수 있는 것은 SQL파일을 외부 라이브러리로 추가하지 않았다는 것, 그래서 그걸 지금 해봐야 한다는 것. 그런데 원래 안하지 않나? 몰라 일단 해본다.
+
+찾아보니 종속성의 'runtimeOnly 'com.mysql:mysql-connector-j' 얘가 다 해준단다. 그럼 얘는 아니고, 아 귀찮아도 하나하나 봐야겠다.
+
+1. SQLGrammarException
+    - 매핑을 제대로 안 한 것 같으니 매핑 하는 방법을 찾자.  
+    - Access denied for user 'SpringAdmin1'@'localhost' to database 'spring_boot_prc'뒤에 이런 놈이 더 숨어있었다. 애초에 연결 자체가 안되고 있던 것.
+    멍청하게도 db이름을 이상하게 썼다......... 아 쪽팔려
+저거 하나 똑바로 썼다고 다 됐다. 아 개쪽팔려 이건 트러블 슈팅에 안 쓸꺼다. 쪽팔리니까
+그래도 고친 것은 있다.  
+![Todo수정](images/image-64.png)  
+이 정도
+
+---
+
+다시 돌아와서 Postman으로 하나하나 테스트 해 보면
+
+![Post](images/image-66.png)  
+![Get](images/image-67.png)  
+![Put - error](images/image-68.png)
+![Put - 성공](images/image-69.png)  
+![Get - 수정 후](images/image-70.png)  
+![Delete](images/image-71.png)
+![Get - 삭제 후](images/image-72.png)
