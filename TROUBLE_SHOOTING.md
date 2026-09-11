@@ -89,3 +89,30 @@ implementation 'org.springframework.boot:spring-boot-starter-validation'
 
 ### 기억하기
 추가하지 않은 의존성은 구글링과 'build.gradle'파일로 해결 가능하다. 만약 import나 다른 부분에서 문제가 생길 시 한 번 확인해 보자.
+
+---
+
+## Fourth Truble
+
+### 문제 상황
+- 종속성 없음  
+
+### 문제 내용 
+@RestController, PostMapping, PutMapping... 등등을 사용할 수 없음
+
+#### 생각해보기
+@RestController를 사용할 수 없음
+    -> import도 되지 않음
+    -> 종속성 문제인가?
+
+---
+
+### 해결법
+종속성 'Spring web' 추가
+```
+implementation 'org.springframework.boot:spring-boot-starter-web'
+```
+
+
+### 기억하기
+폴더 생성 때 종속성 추가시 'Spring web'은 추가하는 것이 좋을 것 같다
