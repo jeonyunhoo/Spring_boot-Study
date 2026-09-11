@@ -1,7 +1,5 @@
 # Spring boot study
 
-수정할 것 - 지금 파일 기준 가장 아래 POST 이미지 없음
-
 ## Spring boot란?
 
 Spring Framework는 자바 기반의 애플리케이션을 만들기 위한 프레임워크이다. 강력하지만 초기 설정(XML 설정, 라이브러리 버전 관리, 서버 배포 설정 등)이 매우 복잡하다는 단점이 있었음. 그리고 이 단점을 해결하기 위해 나온 도구가 Spring boot.
@@ -946,10 +944,10 @@ Caused by: org.hibernate.HibernateException
 
 다시 돌아와서 Postman으로 하나하나 테스트 해 보면
 
-![Post](images/image-66.png)  
-![Get](images/image-67.png)  
-![Put - error](images/image-68.png)
-![Put - 성공](images/image-69.png)  
-![Get - 수정 후](images/image-70.png)  
-![Delete](images/image-71.png)
-![Get - 삭제 후](images/image-72.png)
+![Post](images/image-65.png)  
+![Get](images/image-66.png)  
+![Put - error](images/image-67.png)
+![Put - 성공](images/image-68.png)  
+![Get - 수정 후](images/image-69.png)  
+![Delete](images/image-70.png)
+![Get - 삭제 후](images/image-71.png)
