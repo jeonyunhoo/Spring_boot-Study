@@ -940,6 +940,9 @@ Caused by: org.hibernate.HibernateException
 ![Todo수정](images/image-64.png)  
 이 정도
 
+참고: JAVA에서 'Long'타입을 썼다면 SQL에서 'Bigint'타입으로 선언해야 한다.  
++SQL의 auto_increment를 사용하고자 하면 JAVA에서 @GenerateValue(이 자리에) 'strategy = GenerationType.IDENTITY'를 작성해 주어야 한다.
+
 ---
 
 다시 돌아와서 Postman으로 하나하나 테스트 해 보면
@@ -951,3 +954,228 @@ Caused by: org.hibernate.HibernateException
 ![Get - 수정 후](images/image-69.png)  
 ![Delete](images/image-70.png)
 ![Get - 삭제 후](images/image-71.png)
+
+---
+
+## 실습 단계3 - 회원 가입/로그인 및 비밀번호 암호화
+
+웹 서비스의 기본적인 것 중 하나인 회원 가입 및 로그인  
+
+기본적으로 필요한 종속성을 먼저 추가함
+```
+Spring web - 이전에 추가 안 해서 어노테이션을 사용하지 못 했음
+Spring data JPA - 당연히 DB도 연결해야 함
+MySQL Driver - H2말고 MySQL을 사용함
+Validation - 요류 잡기용
+Spring Security - 얘가 오늘 할 암호화의 필수적 요소
+```
+간단하게 이 정도 종속성만 추가해 주고, 이제 뭘 작성 해야 하나?
+1. 기본적인 CRUD
+2. SQL
+3. **중요** 암호화
+
+### 코드 작성
+
+가장 중요하고 기본적인 CRUD 작성을 먼저 실시(평소화 같기에 사진은 없음)
+
+그리고 저번에 만든 'spring_prc_db'에 'todoUser' 테이블을 생성함  
+![todoUser](images/image-72.png)  
+
+그럼 이제 Service 단계에서 비밀번호 암호화를 실시해야 하는데, 이거 뭐 어떻게 하냐.  
+JDBC와 같은 경우에는 헤시 만들고... 솔트 만들고... 그 잡다한 모든 것을 손수 수작업 한 것과는 다르게  
+'PasswordEncoder'로 처리가 가능.  
+
+그럼 바로 코드로 보면  
+![PasswordEncoder](images/image-73.png)  
+이런 모습.  
+뭐 잡다한 것 없이 깔끔하게 import와 생성자, final 선언. 이것 만으로 모든 준비는 끝남.
+
+이제 진짜 비밀번호를 암호화 할 것인데, 코드를 먼저 보면  
+![savaUser, 암호화](images/image-74.png)  
+원래 한 줄만 있던 savaUser가 세 줄이나 되게 됨. 하나하나 뜯어보면
+
+- String encodedPassword = passwordEncoder.encode(todouser.getUserPassword());
+    * 차근차근 읽어보면 알 수 있듯이 encodedpassword라는 변수에 회원가입 시 작성한 비밀번호를 저장함(가져옴)
+- todoUser.setUserPassword(encodidpassword);
+    * 이것도 비슷한 맥락으로 todoUser의 setUserPassword에 윗줄에서 만든 변수에 담은 값을 다시 담음
+- userRepository.save(todoUser);
+    * 이건 뭐 항상 보던 저장하는 로직
+
+그러면 이제 실행을 해볼까 하는데  
+![실행 에러](images/image-75.png)  
+에러가 뜨는 모습이다.  
+뭐 포트가 이미 사용중이다, 오류가 일어났다. 하는데, 이거 읽어볼 필요가 없다. 왜냐 원래 써야 하는 파일 하나를 쓰지 않았으니까  
+무슨 말이냐 하면, 암호화에 필요한 PasswordEncoder를 사용하고 저장하기 위해서는 새로운 Class가 필요하다. 그 클래스는 바로
+
+![SecurityConfig](images/image-76.png)  
+바로 이 클래스이다. 대강 훑어보고 어노테이션 보면 알다시피 이건 PasswordEncoder를 Bean으로 등록시키는 방법이다. 솔찍히 잘 모르겠고 일단 실행 해 보면?
+
+![실행 성공](images/image-77.png)  
+짜잔~ 실행이 성공적이게 진행되었다. 중간에 써있는 뭐 비밀번호는 뭐시기 개발 용도로만 사용 뭐시기는 그냥 무시하자.
+
+그럼 이제 POST로 회원 가입 단계를 진행해 보자.
+
+![Post](images/image-78.png)  
+간단하게 아이디, 비밀번호, 이름 정도만 작성해 준다면...
+
+![에러](images/image-79.png)  
+음.. 에러다.
+
+---
+
+문제 상황 발생
+
+아주 간단하게 나온
+```
+401 Unauthorized
+```
+엄청나게 짧고 intellij의 터미널에는 아무런 변화도 없다. 그럼 서버에 도달하지도 못 했다는 건데, 음.. 내 머리로는 어림도 없으니 구글링 시작
+
+일단 401에러 라는 것은 접근 권한 부족? 그런 것 때문에 생기는 에러라고 한다.  
+그럼 이걸 어떻게 해결하나?
+
+바로 요청하는 API의 인증에 한해서 권한을 풀어주는 것이다.  
+말은 어렵지만 생각보다 간단한게  
+```
+ @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(authz -> authz
+                        .requestMatchers("/api/auth/register").permitAll()
+                        .anyRequest().authenticated()
+                );
+                //.httpBasic().disable();
+        return http.build();
+    }
+```
+아까 그 Config 파일에 이 구문만 추가해 주면 된다. 얘는 솔찍히 읽을 줄 모르겠다. 모르는 것이 투성이라....
+
+그럼에도 한 번은 뜯어봐야 한다.
+1. .csrf: 인증된 사용자가 자신의 의지와 무관하게 공격자가 의도한 행위(수정, 삭제, 송금 등)를 특정 웹사이트에 요청하게 만드는 웹 보안 취약점
+2. .disable(): 영어 그대로 작동하지 않게 하는 것
+3. .authorizeHttpRequests(authz -> authz
+                        .requestMatchers("/api/auth/register").permitAll()
+                        .anyRequest().authenticated()
+                );
+                : 특정 URL 인증만을 열어주고 나머지는 전부 보안으로 잠금
+4. 결과를 반환하며 이 설정은 끝났으니 실행하라는 의미
+
+---
+
+자, 이렇게 봤으니 코드를 추가해 주고 실행 해 보면?
+
+![403 에러](images/image-80.png)  
+오? 싸우자는 건가?
+
+---
+
+문제 상황 발생
+
+또다시 떠버린 오류.
+```
+403 Forbidden
+```
+이건 서버는 요청을 확인 했지만 클라이언트에서 권한이 없기에 일어나는 에러. 그런데 나는 config까지 설정 했는데?
+
+다시 한 번 읽어 보자.  
+.requestMatchers("/api/auth/register").permitAll()
+요놈 뭔가 꼬롬하다.  
+내가 설정한 주소는 "/user"그런데 이놈은 다르다. 그러면 나는 요놈을 고쳐볼까 한다.  
+![주소 변경](images/image-81.png)  
+
+---
+
+이렇게 다시 해 보면?
+
+![성공](images/image-82.png)  
+크으으으으으으으응으으 이거지 잘 되는 모습.  
+
+![Get](images/image-83.png)  
+비밀번호도 암호화 되어서 잘 나오는 모습까지 확인  
+
+![Put 실패](images/image-84.png)  
+당연하게도 나는 '/user'에만 권한을 주었으니 Put과 del은 되지 않을 것이다.  
+
+### 로그인 설계
+
+일단 로그인도 당연하게도 Controller와 Service를 사용하는데, Service를 먼저 보면
+
+일단 로그인에 필요한 userId, userPassword를 받아오면 됨.  
+```
+public boolean login(String userId, String userPassword)
+```
+이렇게 작성해 줌.  
+'뭐야, 왜 말도 없이 반환값을 boolean으로 지정함?' 그것은 Service에서 로그인을 완벽하게 해내는 것이 아닌 아이디와 비밀번호가 맞는지, 틀렸는 지를 판가름 하기 때문임.  
+
+![Service, login](images/image-85.png)  
+이미지에 나오다시피 엄청나게 길지만, 내용은 별거 없다.
+
+```
+TodoUser existingUser = userRepository.findByUserId(userId)
+    .orElseThrow(() -> new UserNotFoundException("아이디 오류"));
+```
+자 일단 이놈, 슥 보면 이게 뭔가 싶지만 다시 읽고 한 번 더 보면, 이놈 update에서 지겹게 본 로직이다.  
+'엥? 그런데, findByUserId가 뭐임? 그런건 없잖음'라고 할 텐데, 맞음. 기본적으로 'findUserId'라는건 존재하지 않음. 그렇기에 이걸 만들어줘야 하는데 이것도 난리 부르스를 하는게 아니고 repository에 딱 한 줄만 써주면 됨.
+
+```
+Optional<TodoUser> findByUserId(String userId);
+```
+짜잔, 이 한 줄만 있으면 findByUserId를 사용할 수 있고 이건 findById 처럼 작동함.
+
+그러면 이제 다음
+```
+if (passwordEncoder.matches(userPassword, existingUser.getUserPassword())) {
+
+            return true;
+        }
+return false;
+```
+요놈 같은 경우에는 이제 이것도 엄청나게 길어 보이지만 막상 보면 별것 없음
+passwordEncoder.matches: 암호화한 비밀번호와 로그인을 위해 작성한 비밀번호를 검증함
+```
+passwordEncoder.matches(작성한 비밀번호, 저장된 비밀번호)
+```
+이런 식으로 작성되며 이것의 결과는 true 혹은 false로 나옴. 그래서 if를 바로 써줄 수 있는 것임.  
+
+그럼 이제 controller로 넘어가자.
+
+```
+@PostMapping("/login")
+public ResponseEntity login(@RequestBody LoginRequest logRe) {
+
+    if (userService.login(logRe.getUserId(), logRe.getUserPassword())) {
+
+        return ResponseEntity.status(HttpStatus.OK).body("로그인 성공");
+    }
+
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인 실패");
+}
+```
+솔찍히 보면 다 읽힐텐데, 딱 하나 이해 안 되는 부분이 있을꺼임, 바로 'LoginRequest'의 정체, 이건 배운 적도 없고 존재하지도 않는데 어디서 가져온 거냐. 하면
+
+![LoginRequest](images/image-86.png)  
+새로운 클래스를 작성한 것. 구성을 보면 알겠다시피 TodoUser.java와 아주 유사함. 이걸 왜 작성했나?  
+이 클래스를 작성하지 않고 login을 완성하려면 매개변수 자리에 'TodoUser todouser'를 작성해야 함. 그게 무슨 문제냐 할 수 있는데 저렇게 값을 불러오게 되면 로그인에는 필요 없는 'userName'까지 불러오게 됨. 그래서 새로운 클래스를 작성해서 나에게 딱 필요한 것만 가져옴(userId, userPassword)
+
+그리고 또 볼 만한게 반환형이 ResponseEntity라는 것. 이건 왜 그런 거냐.  
+일반적인 boolean을 반환형으로 삼으면 로그인에 성공하든, 실패하든 200 OK라는 답만이 돌아오게 되는데 그렇게 되면 사용자는 '이게 로그인이 되어서 200OK인지, 로그인에 실패해서 200OK인지 알 턱이 없다. 그래서 성공 여하와 로그인 성공 여부를 사용자가 읽을 수 있도록 반환시켜 주는 형이다.(참고로 예외 처리도 저 형으로 반환한다.)
+
+이렇게 모두 완성하고..... 라고 생각하기는 금물. 우리는 'Spring Security'를 사용한다. 이는 즉 API 접근 권한이 없으면 접근할 수 없다는 것. 그리고 로그인의 주소는 '/login'이라는 것.  
+참고로 아직까지 허용해 둔 개방 주소는 '/user'뿐이니 이 Post신호를 보내도 받을 수 있는 것은 '403 에러'뿐. 그럼 이제 다시 Config를 고치면 되는데 이건 아주 쉽다.
+```
+.requestMatchers("/user", "/login").permitAll()
+```
+이렇게 쉼표를 넣고 삽입 하는 것.
+
+그럼 이제 실행 해 보면.
+![로그인 성공](images/image-87.png)  
+로그인에 성공함을 확인할 수 있다(firstUser는 윗 단계에서 만들어 놓은 유저이다.)
+
+그럼 이제 아이디를 틀리게 하면  
+![아이디 오류](images/image-88.png)  
+아이디 오류라는 말이 반환되고
+
+![비밀번호 오류](images/image-89.png)  
+비밀번호를 이상하게 대입하니 로그인 실패라고 뜨는 모습이다.  
+여기서 왜 401오류가 뜨는지 궁금할 수 있는데, Controller 단계에서 작성한 'HttpStatus.UNAUTHORIZED'가 권한을 주지 않았다는 오류이다.
