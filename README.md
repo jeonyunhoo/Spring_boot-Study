@@ -304,6 +304,22 @@ This 내장 톰캣 이라고 함. 그냥 main 메서드를 시작하는 것 만�
 * 기본 application.properties에는 모든 환경에서 공통으로 쓰이는 설정을, 각 프로파일 파일에는 환경별로 다른 설정만 작성하는 방식이 일반적임  
 이렇게 나누니 배포할 때나 테스트 할 때나 등등 코드를 바꾸지 않고 설정값을 지정해 줌으로써 편리하고 유연하게 바꿀 수 있음
 
+### 세션(Session) 구현
+세션(Session)이란 Spring(그리고 자바 웹 전반)에서는 세션을 다룰 때 'HttpSession'이라는 객체를 사용함. 이건 마치 "서버가 각 사용자마다 하나씩 나눠주는 서랍"과도 같은 것.
+
+* 방식
+    - 사용자가 최초로 접속하면 서버는 사용자의 전용 서랍(Session)을 하나 만듦
+    - Controller 메서드에서 'HttpSession session'을 매개 변수로 받으면, 지금 이 요청을 보낸 사용자의 서랍을 그대로 건네받을 수 있음.
+    - session.setAttribute("key", value)로 그 서람의 데이터를 넣어둘 수 있고 session.getAttribute("key")로 다시 데이터를 꺼내 쓸 수 있음
+    - 클라이언트(브라우저/Postman)는 이 서람을 열 수 있는 열쇠(세션 쿠키, JSESSIONID)를 자동으로 받아서, 다음 요청부터 계속 그 열괴를 함께 보냄. 그로 인해 서버는 이 사용자가 어떤 서랍의 주인임을 알아 볼 수 있음.
+
+하지만 이 세션 방식은 단점이 명확하게 존재함  
+서버가 여러 대로 늘어나면, 세션 정보를 서버들 끼리 공유해야 하는 번거로움이 생길 수 있다는 것  
+
+그래서 사용되는 방식이 **토큰(Token)**방식 하지만 이건 지금 쓸건 아니기에 다음에 설명하도록 하겠음.
+
+---
+
 ## 어노테이션 정리
 * 필수적인 것 부터 천천히 추가할 것
 1. @SpringbootApplication
@@ -410,7 +426,11 @@ JpaRepository 인터페이스에서 상속 받는 뭐 그런 것도 있다.
 4. @Varchar 애초에 존재하지 않은 어노테이션임, @Valid가 기억이 안 났을 뿐임
     - 부가 설명: 값의 유효성을 검증하는 어노테이션으로는 @Size, @NotNull, @Email 등등 존재
 
+---
+
+
 ## 실습 단계1 - H2 Database
+*폴더명*: Springboot-practice2
 ![@SpringBootApplication 실제 모습 및 위치](images/image.png)  
 @SpringBootApplication의 위치  
 '프로젝트이름Application.java' 파일에 위치함(프로젝트 이름에 '-'이 들어갔지만 지워진 형태로 써져있음)  
@@ -823,7 +843,7 @@ public ResponseEntity handlerMethodArgumentNotValid(MethodArgumentNotValidExcept
 설정해 놓은 기본 메시지로 잘 출력되는 모습이다.
 
 ## 실습 단계2 - MySQL 연동
-
+*폴더명*: Springboot-practice3-MySQL
 H2 database로 적당히 해봤으니 이제는 MySQL과 연결해서 사용해 볼것임.  
 가볍게 종속성은 두 개 정도 필수만 챙겨주기
 ```
@@ -958,7 +978,7 @@ Caused by: org.hibernate.HibernateException
 ---
 
 ## 실습 단계3 - 회원 가입/로그인 및 비밀번호 암호화
-
+*폴더명*: Springboot-practice4-Login
 웹 서비스의 기본적인 것 중 하나인 회원 가입 및 로그인  
 
 기본적으로 필요한 종속성을 먼저 추가함
@@ -1179,3 +1199,96 @@ public ResponseEntity login(@RequestBody LoginRequest logRe) {
 ![비밀번호 오류](images/image-89.png)  
 비밀번호를 이상하게 대입하니 로그인 실패라고 뜨는 모습이다.  
 여기서 왜 401오류가 뜨는지 궁금할 수 있는데, Controller 단계에서 작성한 'HttpStatus.UNAUTHORIZED'가 권한을 주지 않았다는 오류이다.
+
+---
+
+## 실습 단계4 - 회원 가입/로그인 및 로그인 유지/로그아웃
+*폴더명*: Springboot-practice5-Session
+이번에는 이전 실습 단계에서 했던 로그인에서 더 이어가 로그인 유지를 해볼 생각, 그리고 빠질 수 없는 로그 아웃 까지.
+
+추가한 종속성
+```
+Spring web
+Spring data JPA
+Spring Security
+MySQL Driver
+Validation
+```
+이전 실습 단계에서 했던 것과 같다.
+
+또 지루하고 현학적인 CRUD, 예외처리, 로그인, 회원 가입은 빠르게 작성하도록 하자.
+
+### 코드 작성
+
+얘는 이제 생각보다 진짜 짧다.  
+먼저 내가 지금 사용할 방법은 세션(Session)인데 자세한건 위에 정리해 두었으니 그것 읽어보고, 아주 간단하게 설명을 해보면  
+로그인 할 때 키를 내어줌
+```
+httpSession.setAttribute("UserSessKey", logRe.getUserId());
+```
+그럼 끝임.
+
+이게 뭔 헛소리냐 할 수도 있지만. 코드를 보면  
+![세션 추가 후 로그인 메서드](images/image-90.png)  
+이렇게 되어있다. 로그인을 성공하게 되면 세션 키를 부여하고 원래처럼 작동한다.  
+
+이렇게 추가만 하면 로그인이 유지 되는지 안되는지 어떻게 아냐? 싶은데 그래서 로그인을 확인할 수 있는 것을 하나 만든다.
+
+![로그인 확인](images/image-91.png)  
+```
+String userId = (String) httpSession.getAttribute("UserSessKey");
+```
+이 문장으로 사용자가 가진 키를 확인 하고 if문에서 키의 존재(비어있는가?)를 확인해서 변수가 비어있다면 로그인이 필요하다는 말과 함께 401에러(권한 부족 에러)가 일어나도록 한다.  
+만약 키가 존재한다면 로그인된 유저의 아이디와 함께 로그인이 되어있음을 확인시켜 준다.  
+(Config 파일에 '/mypage'를 추가해야 한다.)
+
+Postman에서 확인해 보면
+
+![로그인 하지 않고 Get요청](images/image-92.png)  
+로그인 하지 않으면 이렇게 로그인이 필요하다며 401에러가 나오고
+
+![로그인 이후 Get요청](images/image-93.png)  
+로그인 이후 요청하게 되면 200 OK와 함께 '아이디 + 로그인 확인문'이 출력됨을 확인할 수 있다.
+
+이제 더 나아가 로그아웃 까지 만들어볼까 한다. 로그인이 있으면 로그아웃도 있어야 하는 법이니까.
+
+로그 아웃은 뭐 줬던 세션(Session) 키를 다시 거두면 된다. 그 코드는
+```
+httpSession.invalidate();
+```
+이건데, 로그아웃 코드는 로그인 코드랑 거의 99% 똑같다  
+![로그아웃 코드](images/image-94.png)  
+이렇게 문장만 바꾸고 세션 거두는 코드 추가해 준 것이 끝이다. 그렇게 해서 실행 해 보면
+
+![에러, 403](images/image-95.png)  
+이제는 반가운 에러다
+
+---
+
+문제 상황 발생
+
+SecurityConfig에도 '/login'을 써 놨고, Mapping도 '/login'으로 설정까지 잘 해 두었다. 그런데 권한 부족이 뜬다면 다른 곳에 문제가 있을 수도 있다.
+```
+2026-09-16T15:02:26.301+09:00  WARN 29640 --- [Springboot-practice5-Session] [nio-8080-exec-1] .w.s.m.s.DefaultHandlerExceptionResolver : Resolved [org.springframework.web.HttpRequestMethodNotSupportedException: Request method 'GET' is not supported]
+```
+intellij에서 이런 오류가 뜨는 걸 보아하니 'get'요청을 지원하지 않지만 해결되었다느니 뭐라느니 감도 안 잡히게 헛소리를 해버린다. 위에서는 내가 POST로 보냈다는걸 알 수 있는데.  
+
+내 지식 선에서 벗어났으니 구글링을 시작해 본다.
+
+Spring Security 종속성을 추가하면 '/login' URL이 자동적으로 생성된다고 한다. 그러면 내가 작성한 코드 말고 Spring에서 자동 생성된 '/login'으로 끌고가는 듯 하다. 이렇게 되면 해결하는 방법은 두 개 정도가 있을텐데.  
+1. 내가 작성한 코드의 URL을 바꾸는 것.
+2. Config에 설정을 추가하여 '/login'을 강제로 끌오는 것.  
+사실 두 번째가 압도적으로 끌린다. 로그아웃을 하는데 URL이 '/logout'이 아니면 조금 이상하니까.  
+그리고 많이 어렵게 쓰는 것도 아니고
+```
+.logout(logout -> logout.disable())
+```
+이 한 문장만 추가해 주면 된다.  
+
+---
+
+![Config](images/image-96.png)   
+이렇게 작성된 모습이다. 그럼 이렇게 하고 다시 실행해 보면?
+
+![해결](images/image-97.png)  
+작성한 코드로 끌고 와서 정확하게 출력되는 모습이다.
