@@ -1,5 +1,7 @@
 # Spring boot study
 
+Docker 세팅, 로그아웃 확인하기
+
 ## Spring boot란?
 
 Spring Framework는 자바 기반의 애플리케이션을 만들기 위한 프레임워크이다. 강력하지만 초기 설정(XML 설정, 라이브러리 버전 관리, 서버 배포 설정 등)이 매우 복잡하다는 단점이 있었음. 그리고 이 단점을 해결하기 위해 나온 도구가 Spring boot.
@@ -304,6 +306,9 @@ This 내장 톰캣 이라고 함. 그냥 main 메서드를 시작하는 것 만�
 * 기본 application.properties에는 모든 환경에서 공통으로 쓰이는 설정을, 각 프로파일 파일에는 환경별로 다른 설정만 작성하는 방식이 일반적임  
 이렇게 나누니 배포할 때나 테스트 할 때나 등등 코드를 바꾸지 않고 설정값을 지정해 줌으로써 편리하고 유연하게 바꿀 수 있음
 
+
+## 세션과 토큰
+
 ### 세션(Session) 구현
 세션(Session)이란 Spring(그리고 자바 웹 전반)에서는 세션을 다룰 때 'HttpSession'이라는 객체를 사용함. 이건 마치 "서버가 각 사용자마다 하나씩 나눠주는 서랍"과도 같은 것.
 
@@ -317,6 +322,43 @@ This 내장 톰캣 이라고 함. 그냥 main 메서드를 시작하는 것 만�
 서버가 여러 대로 늘어나면, 세션 정보를 서버들 끼리 공유해야 하는 번거로움이 생길 수 있다는 것  
 
 그래서 사용되는 방식이 **토큰(Token)**방식 하지만 이건 지금 쓸건 아니기에 다음에 설명하도록 하겠음.
+
+---
+
+### 토큰(Token) 구현
+위에 설명한 세션(Session)과 비슷하면서 확연히 다른 방식인 토큰 아래서 실습도 할 것 이지만 설명 정도는 필요해 보임.
+
+세션의 구조가
+```
+로그인 성공 → 서버가 세션 서랍(HttpSession)에 정보 저장 → 클라이언트는 열쇠(JSESSIONID)만 들고 있음
+```
+이렇게 생겼다고 치면
+
+토큰의 구조는
+```
+로그인 성공 → 서버가 "이 사람은 인증됐다"는 정보 자체를 토큰 안에 담아서 클라이언트에게 통째로 줌 → 서버는 아무것도 안 남김
+```
+이런 식임. 좀 길어서 읽기 싫을 테니 간단하게 요약하면
+
+**세션**은 서버가 사용자를 기억하는 것.  
+**토큰**은 사용자가 나를 증명하는 것.  
+정도로 생각하면 될 것 같음
+
+그럼 어떻게 서버가 사용자를 기억하고 유지하나? 생각 할 수 있음.  
+토큰의 구조부터 보자면
+```
+헤더.내용.서명
+```
+이렇게 **.**으로 연결된 세 가지 부분으로 구성되어 있는데  
+- 헤더(Header): "이건 JWT이고, 이런 암호화 방식을 썼다"는 메타정보  
+- 내용(Payload): 우리가 담고 싶은 실제 정보 (예: userId, 토큰 만료 시각 등) — 이건 암호화된 게 아니라 그냥 인코딩만 된 것이라, 사실 누구나 내용을 볼 수 있습니다(비밀정보는 담으면 안 됨).  
+- 서명(Signature): 서버만 알고 있는 **비밀 키(secret key)**를 이용해서, "헤더+내용"이 위조되지 않았음을 증명하는 부분  
+
+그럼 클라이언트는 사용자에게 어떻게 토큰을 보내는가?
+```
+Authorization: Bearer 토큰
+```
+관례적으로 이런 형식이다. 'Authorization'라는 이름의 헤더에, 'Bearer '(뒤에 공백 한 칸)
 
 ---
 
@@ -1202,7 +1244,7 @@ public ResponseEntity login(@RequestBody LoginRequest logRe) {
 
 ---
 
-## 실습 단계4 - 회원 가입/로그인 및 로그인 유지/로그아웃
+## 실습 단계4 - 회원 가입/로그인 및 로그인 유지/로그아웃(By Session)
 *폴더명*: Springboot-practice5-Session
 이번에는 이전 실습 단계에서 했던 로그인에서 더 이어가 로그인 유지를 해볼 생각, 그리고 빠질 수 없는 로그 아웃 까지.
 
@@ -1292,3 +1334,145 @@ Spring Security 종속성을 추가하면 '/login' URL이 자동적으로 생성
 
 ![해결](images/image-97.png)  
 작성한 코드로 끌고 와서 정확하게 출력되는 모습이다.
+
+---
+
+## 실습 단계5 - 회원 가입/로그인 및 로그인 유지/로그아웃(By Token)
+*폴더명*: Springboot-practice6-Token
+
+세션(Session)에 이어 이번에는 토큰(Token)을 사용해 볼 것이다. 거두절미하고 종속성 부터 알아보면
+
+종속성
+```
+Spring web
+Spring Security
+Spring data JPA
+MySQL Driver
+validation
+Java Json Web Token - 신규, Token사용을 위한 라이브러리
+```
+
+Spring boot 폴더 생성을 intellij로 하는 편인데, JJWT종속성 추가가 생성 화면에 나오지 않아 따로 추가해 줌
+```
+implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+```
+
+그럼 이제 지루하고 현학적인 기본 작업 시작
+
+### 코드 작성
+
+일단 토큰을 생성하기 위해서는 새로운 클래스가 필요하다.  
+JwtUnit 클래스를 생성해 주고 아래와 같이 작성해 준다.  
+![JwtUnit](images/image-98.png)  
+하나하나 뜯어보면
+
+1. Key.secretKeyFor(...): 기본적으로 제공하는 기능으로 안전한 비밀 키 생성
+2. SignatureAlgorithm.HS256: 이건 생성하는 방식 정도라고 생각하면 됨.
+3. Jwts.builder(): 토큰 생성을 시작하겠다는 선언
+4. .setSubject(userId): 토큰의 **내용**부분의 담을 핵심 정보로 userId를 넣음.
+5. .setIssuedAt(new Date()): 토큰이 언제 발급되었는지의 시각 기록
+6. .setExpiration(...): 토큰이 언제 만료되는지.(지금은 (현재 시각 + 1시간(1000 * 60 * 60)밀리초)로 설정)
+7. .signWith(key): 위에서 만든 비밀 키를 서명으로 붙인다.
+8. .compact(): 이 모든 것을 하나의 문자열(토큰)으로 압축시킨다.
+
+정도로 보면 되고. 이제 Controller로 돌아가 토큰을 부여 해 주면 된다.
+
+![Controller, Jwt받아오기](images/image-99.png)  
+먼저 JwtUnit을 받아와 준 후
+
+![Login메서드, 토큰 지급](images/image-100.png)  
+토큰을 지급해 준다.  
+
+여기서 궁금할 점.
+저렇게 하면 토큰이 공개되는 것 아닌가요?  
+맞음. 저렇게 작성 하면 토큰이 공개됨. 하지만 상관없음. 저렇게 공개한다고 해서 조작할 수 있는 것도 아니며 지금은 테스트이기에 토큰이 정확하게 지급 되었는지 확인하기 편해야 하기도 함.
+
+이렇게 설정하고 Postman으로 테스트 해 보면?
+
+![Postman, 로그인 성공](images/image-101.png)  
+아주 완벽하게 성공한 모습
+
+```
+eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmaXJzdFVzZXIiLCJpYXQiOjE3ODk2MDk5MTgsImV4cCI6MTc4OTYxMzUxOH0.3JtXG_UdBzN-banjlYbxcxUO4NgeQyo7A9Cb_5HLHVs
+```
+이렇게 보면 알 수 있듯이 '.'을 기준으로 세 덩이로 나뉘어 있음.  
+위에서 설명한 세 부분  
+'헤더.내용.서명'  
+
+그럼 이제 로그인이 유지되는지 확인할 수 있도록 mypage작업을 시작
+
+이 토큰의 검증은 좀 귀찮은데 먼저 JwtUnit.java에 이 토큰이 옳은가 검증이 먼저임  
+![토큰 검증](images/image-102.png)  
+또 하나하나 설명하자면
+
+1. Jwts.parserBuilder(): 토큰을 해석하는 도구 만들기를 시작하겠다는 선언
+2. .setSigningKey(key): 위에서 만든 비밀 키로 서명을 검증한다는 선언
+3. .build(): 도구를 완성
+4. .parseClaimsJws(token): 도구로 매개변수로 받은 token을 실제로 해석함. 이 순간 서명이 검증되며 만약 위조되었거나 만료된 토큰이면 여기서 자동으로 예외처리가 발생함
+5. .getBody(): 토큰의 내용 부분을 꺼냄
+6. .getSubject(): 내용 중 sub(createToken에서 setSubject(userId)로 넣은 값)을 꺼냄
+
+이렇게 쓰면 된다.
+
+![Controller, loginCheck](images/image-103.png)  
+이건 이제 Controller 코드인데
+```
+String token = authHeader.substring(7);
+```
+이건 앞의 7글자를 빼고 가져오라는 뜻인데 'bearer '를 제거하고 딱 토큰만 가져오기 위한 것이다.
+
+```
+String userId = jwtUnit.getUserIdFromToken(token);
+return ResponseEntity.status(HttpStatus.OK).body(userId + "님, 로그인되었습니다.");
+```
+이건 위에서 만든 도구로 추출한 userId를 뽑아와서 로그인 성공 로그를 출력한다.
+
+Postman에서 보면  
+![Postman로그인 확인](images/image-104.png)  
+이런 식인데 'Key'에는 헤더의 이름(Authorization)을 'value'에는 토큰을 써주면 된다. 애초에 로그인을 하지 않으면 요청을 보내도 403에러가 뜨기 때문에 굳이 실패시 나올 구문은 만들지 않았다.
+
+그럼 만약 토큰을 수정해서 보낸다면 어떻게 될까?  
+일단 Postman에서는 403에러가 뜰 것이고, Intellij에서는 
+```
+JWT signature does not match locally computed signature. JWT validity cannot be asserted and should not be trusted.
+```
+라고 뜬다. 장황하게 쓰여 있지만 짧게 요약하면  
+JWT에서 연산된 서명과 같이 않으므로 믿을 수 없다. 이런 뜻이다.
+
+그럼 이제 로그아웃을 구현 할 것인데, 이게 진짜 복잡하다. 일단 추가되는 종속성이 있는데
+```
+implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+```
+이걸 작성하여 'Redis'를 추가한다.
+
+**Redis란?**  
+키-값(Key-Value) 구조의 비정형 데이터를 메모리에 저장하고 처리하여 빠른 속도를 제공하는 오픈소스 인메모리 데이터 구조 저장소
+
+그리고 Redis를 따로 작동 시킨다(application.properties에 추가)
+```
+spring.data.redis.host=localhost
+spring.data.redis.port=6379
+```
+
+그 다음 config 패키지에 RedisConfig.java를 작성해 준다.
+![RedisConfig](images/image-105.png)  
+
+그러고는 JwtUnit을 수정해야 하는데 그건 일단 길어서 사진은 넘기기로 하자
+
+![로그아웃 구현](images/image-106.png)  
+이렇게 다 완성 해 주고 Postman으로 확인 해 주면?
+
+*참고*
+```
+docker run -d -p 6379:6379 --name my-redis redis
+```
+최초 실행 시 이렇게 해줘야 Redis가 실행된다  
+다회차 부터는 
+```
+docker start my-redis
+```
+이렇게 하면 된다.
+
+염병할 이걸 하려고 해도 난리네 안 해
