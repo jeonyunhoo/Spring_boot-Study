@@ -1,6 +1,7 @@
 # Spring boot study
 
-Docker 세팅, 로그아웃 확인하기
+1. Docker 세팅, 로그아웃 확인하기
+2. Springboot-practice8-All 완성하기
 
 ## Spring boot란?
 
@@ -1475,4 +1476,61 @@ docker start my-redis
 ```
 이렇게 하면 된다.
 
-염병할 이걸 하려고 해도 난리네 안 해
+---
+
+## 실습 단계6 - Lombok
+*파일명*: Springboot-practice7-Lombok
+
+코드 작성을 쉽게 만들어주는 도구인 Lombok, 원래는 조금 더 빠르게 쓰려고 했지만, 토큰에서 너무 스트레스를 받는 바람에 조금 쉬운 것으로 머리를 식히고자 한다. 그럼 빠르게 종속성 부터 확인하면
+
+종속성
+```
+Spring Web
+Spring data JPA
+H2 Database
+Valiation
+Lombok
+```
+진짜로 원래 했던 것에 Lombok만 할 것이다. 다른건 바라지 말도록.
+
+### 코드 작성
+
+일단 Lombok의 어노테이션들 부터 알아보자.
+
+```
+@Getter: 클래스 위에 붙이면, 모든 필드에 대한 getter를 자동으로 만들어줌
+@Setter: 클래스 위에 붙이면, 모든 필드에 대한 setter를 자동으로 만들어줌
+@NoArgsConstructor: 매개변수 없는 빈 생성자를 자동으로 만들어줌
+@AllArgsConstructor: 모든 필드를 매개변수로 받는 생성자를 자동으로 만들어줌
+@RequireArgsConstructor: final이 붙은 필드에만 매개변수로 받은 생성자를 자동으로 만들어줌
+@Data: @Getter + @Setter + 몇 가지를 한 번에 붙여주는 종합 세트
+```
+
+대표적인 것만 간단하게 추려 봤는데, 그럼 거두절미하고 바로 코드부터 보면  
+![Todo.java](images/image-107.png)  
+클래스 위에 @Getter, @Setter, @NoArgsConstructor를 붙여줌으로서 필드 선언과 필드와 관련된 어노테이션만 작성하여 코드의 양을 획기적으로 줄임을 확인할 수 있다.
+
+![TodoService.java](images/image-108.png)  
+이번에는 @RequiredArgsConstructor를 작성함으로써 final로 선언된 'TodoRepository'를 받는 생성자를 없애며 코드의 양이 줄었다.
+
+![TodoController.java](images/image-109.png)  
+Service계층과 마찬가지로 final로 선언된 'TodoService'를 받는 생성자를 없앰
+
+이미 실습은 여러번 해 본 관계로 Postman으로 이것저것 하지는 않음.
+
+---
+
+## 실습 단계7 - 종합(MySQL연결, 암호화, 로그인/로그아웃(세션), Lombok, 예외처리 등)
+*파일명*: Springboot-practice8-All
+
+그냥 바로 종속성 부터 보고 시작
+
+종속성
+```
+Spring Web
+Spring Data JPA
+Lombok
+MySQL Driver
+Validation
+Spring Security
+```
