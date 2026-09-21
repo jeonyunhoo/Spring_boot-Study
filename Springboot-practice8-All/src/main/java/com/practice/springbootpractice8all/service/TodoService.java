@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @AllArgsConstructor
@@ -24,6 +25,11 @@ public class TodoService {
     public List<Todo> reviewTodo() {
 
         return todoRepository.findAll();
+    }
+
+    public Optional<Todo> reviewForIdTodo(long id) {
+
+        return todoRepository.findById(id);
     }
 
     public void updateTodo(long todoId, Todo changeThing) {

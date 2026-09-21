@@ -46,4 +46,16 @@ public class UserService {
 
         userRepository.deleteById(id);
     }
+
+    public boolean login(String userId, String userPassword) {
+
+        TodoUser existingUser = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new UserIdNotFoundException("해당 ID를 찾을 수 없습니다."));
+        if(passwordEncoder.matches(userPassword, existingUser.getUserPassword())) {
+
+            return true;
+        }
+
+        return false;
+    }
 }

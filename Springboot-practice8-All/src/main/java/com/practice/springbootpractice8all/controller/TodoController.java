@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @AllArgsConstructor
@@ -14,9 +15,15 @@ public class TodoController {
     private final TodoService todoService;
 
     @PostMapping("/todos")
-    public void createTodo(Todo todo) {
+    public void createTodo(@RequestBody Todo todo) {
 
         todoService.saveTodo(todo);
+    }
+
+    @PostMapping("/todo/{id}")
+    public Optional<Todo> reviewForIdTodo(@PathVariable long id) {
+
+        return todoService.reviewForIdTodo(id);
     }
 
     @GetMapping("/todos")
@@ -26,13 +33,13 @@ public class TodoController {
     }
 
     @PutMapping("/todos/{id}")
-    public void updateTodo(long todoId, Todo changeTodo) {
+    public void updateTodo(@PathVariable long todoId, @RequestBody Todo changeTodo) {
 
         todoService.updateTodo(todoId, changeTodo);
     }
 
     @DeleteMapping("/todos/{id}")
-    public void deleteTodo(long todoId) {
+    public void deleteTodo(@PathVariable long todoId) {
 
         todoService.deleteTodo(todoId);
     }
