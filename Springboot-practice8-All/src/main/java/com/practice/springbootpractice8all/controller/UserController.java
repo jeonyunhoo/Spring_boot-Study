@@ -52,4 +52,31 @@ public class UserController {
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인 실패");
     }
+
+    @GetMapping("/mypage")
+    public ResponseEntity myPage(HttpSession httpSession) {
+
+        String userId =(String)httpSession.getAttribute("UserSessKey");
+
+        if(userId == null || userId.isBlank()) {
+
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인 되어있지 않습니다.");
+        }
+
+        return ResponseEntity.status(HttpStatus.OK).body(userId + "님 로그인 되어있습니다.");
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity logout(HttpSession httpSession) {
+
+        String userId =(String)httpSession.getAttribute("UserSessKey");
+
+        if(userId == null || userId.isBlank()) {
+
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인 되어있지 않습니다.");
+        }
+
+        httpSession.invalidate();
+        return ResponseEntity.status(HttpStatus.OK).body("로그아웃 되었습니다.");
+    }
 }
