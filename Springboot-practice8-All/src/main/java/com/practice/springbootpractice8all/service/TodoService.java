@@ -1,7 +1,9 @@
 package com.practice.springbootpractice8all.service;
 
 import com.practice.springbootpractice8all.domain.Todo;
+import com.practice.springbootpractice8all.domain.TodoUser;
 import com.practice.springbootpractice8all.exception.TodoIdNotFoundException;
+import com.practice.springbootpractice8all.exception.UserIdNotFoundException;
 import com.practice.springbootpractice8all.repository.TodoRepository;
 import com.practice.springbootpractice8all.repository.UserRepository;
 import lombok.AllArgsConstructor;
@@ -15,10 +17,13 @@ import java.util.Optional;
 public class TodoService {
 
     private final TodoRepository todoRepository;
+    private final UserRepository userRepository;
 
+    public void saveTodo(Todo todo, String userId) {
 
-    public void saveTodo(Todo todo) {
-
+        TodoUser existingTodoUser = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new UserIdNotFoundException("해당 ID를 찾을 수 없습니다."));
+        todo.setOwner(existingTodoUser);
         todoRepository.save(todo);
     }
 

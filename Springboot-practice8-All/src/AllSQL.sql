@@ -17,3 +17,5 @@ create table todo_write_a(
     
     foreign key (id) references todo_user_a(id)
 );
+
+select * from todo_user_a;

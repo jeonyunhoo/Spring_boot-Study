@@ -2,7 +2,10 @@ package com.practice.springbootpractice8all.controller;
 
 import com.practice.springbootpractice8all.domain.Todo;
 import com.practice.springbootpractice8all.service.TodoService;
+import jakarta.servlet.http.HttpSession;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,11 +16,20 @@ import java.util.Optional;
 public class TodoController {
 
     private final TodoService todoService;
+    private final HttpSession httpSession;
 
-    @PostMapping("/todos")
-    public void createTodo(@RequestBody Todo todo) {
+    @PostMapping("/todo")
+    public ResponseEntity createTodo(@RequestBody Todo todo, HttpSession httpSession) {
 
-        todoService.saveTodo(todo);
+        String userId =(String)httpSession.getAttribute("UserSessKey");
+
+        if(userId == null || userId.isBlank()) {
+
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("확인되지 않은 요청");
+        }
+
+        todoService.saveTodo(todo, userId);
+        return ResponseEntity.status(HttpStatus.OK).body("등록이 완료되었습니다.");
     }
 
     @PostMapping("/todo/{id}")
