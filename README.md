@@ -1534,3 +1534,82 @@ MySQL Driver
 Validation
 Spring Security
 ```
+
+### 코드 작성
+
+![TodoUser.java](images/image-110.png)  
+TodoUser파일, 나머지는 원래 있던 것인데 처음 보는 하나 
+```
+@OneToMany(mappedBy = "owner")
+private List<Todo> todos;
+```
+얘는 간단하게 설명하면 작성된 Todo와 작성자를 연결해 주는 부분이다.  
+(외래키 느낌)
+
+![Todo.java](images/image-111.png)  
+당연하게도 Todo파일에도 존재한다. 그럼 '@JoinColumn'이 무엇인가 하면, 외래키로 등록하는 거다. 그냥 그렇게 생각하면 편하다.
+```
+@ManyToOne: 여러 개의 자식 엔티티가 하나의 부모 엔티티를 참조
+@OneToMany: 하나의 엔티티가 여러 개의 하위 엔티티를 가지는 일대다(1:N) 관계를 매핑
+```
+나머지 어노테이션은 이정도로 생각하면 될 것 같고
+
+![TodoContorller.createTodo](images/image-112.png)  
+원래라면 void로 반환하는 Controller계층의 createTodo, 이번에는 ResponseEntity를 사용하고 또한 HttpSession까지 불러오게 되었다.  
+내용을 보면, 지급된 세션에서 userId를 추출하고 userId가 존재한다면 todoService를 호출하며 성공 문자를 반환하고 userId가 존재하지 않다면 실패 코드를 반환하는 형식이 되었다. 그럼 연달아 Service계층을 확인하면
+
+![TodoService.saveTodo](images/image-113.png)  
+여기서도 'todoRepository.save(todo)'만 쓰여 간단하게 써져있을 save도 String userId도 받고 existingTodoUser가 생기며 조금 더 복잡해진 모습이다. 이 코드 자체는 다른 곳에서도 많이 써서 알 수 있듯이 Repository에서 받은 userId의 존재를 userRepository에서 검증하고 있다면 저장, 없다면 오류 출력 과 같은 순서를 밟은 후 '.setOwner'로 'existingTodoUser'를 오너로 설정한 후 todoRepository에 저장한다.
+
+![SecurityConfig.java](images/image-114.png)  
+대충 훑으면 이전과 다를 것 없는 같은 코드로 보일지 몰라도, 잘 보다보면 '.requestMatchers'부분 허용된 URL에 '/todo/*'가 보인다. 이는 '/todo하위의 /todo/1, /todo/2같은 것들도 허용한다. 라는 것이다.'  
+
+![파일 전체](images/image-115.png)  
+이 정도로 확인할 수 있다. 처음 쓰거나 아리까리 한 것만 설명하려다보니 나머지 내용은 원래 내용과 같아서 딱히 설명할 게 없다.
+
+대강 설명은 끝났으니 실행해보면
+
+---
+
+문제 상황 발생
+
+![에러코드](images/image-116.png)  
+
+문제 상황은 한 번 할 때 마다 계속 뜨는 것 같다.
+
+뭐 영어로 쏼라쏼라 막 써져 있는데, 'Description'부분만 똑 띄어 읽어보면
+```
+com.practice.springbootpractice8all.service.UserService의 생성자에서 첫 번째 파라미터로 'org.springframework.security.crypto.password.PasswordEncoder' 타입의 빈(bean)이 필요했으나 찾을 수 없었습니다.
+번역기 도움
+```
+음~ 즉 PasswordEncoder의 문제렸다. 우리가 bean을 건드린 장소는 오직 SecurityConfig 뿐, 거두절미하고 바로 확인 해 보면  
+![SecurityConfig.passwordEncoder](images/image-117.png)  
+음... 잘 작성 되어 있다. 이것 만으로는 모르겠으니 Action 부분도 읽어보면  
+```
+설정에서 'org.springframework.security.crypto.password.PasswordEncoder' 타입의 빈(bean)을 정의하는 것을 고려해 보세요.
+```
+흐음... 더 미궁에 빠져버렸다. Config에서 설정됨을 확인 했지만 고치라는 말만 반복하는 것을 보아하니 다시 한 번 봐야 할 것 같다.
+
+![SecurityConfig](images/image-118.png)  
+음.. 그냥 봐도 모르겠으니 이전에 작성한 프로잭트의 SecurityConfig와 비교해서 봐야 할 것 같다  
+
+![다른 프로잭트 SecurityConfig](images/image-119.png)  
+음... 아, class위에 어노테이션들이 비어있음을 알 수 있다.
+```
+@Configuration: 해당 클래스가 Spring의 설정 클래스임을 나타냄
+    - 내부적으로 @Component 어노테이션을 포함하고 있어 Spring의 컴포넌트 스캔 대상으로 되어 Bean으로 등록함
+    - 클래스 내부에서 @Bean 어노테이션이 붙은 메서드를 선언하면, 해당 메서드가 반환하는 객체가 Spring 컨테이너에 수동으로 등록됨
+@EnableWebSecurity: 스프링 시큐리티 설정을 활성화 하고, 웹 보안 구성을 제어할 수 있도록 도움
+    - Spring Security의 기본 웹 보안 지원 기능 활성화
+    - 내부적으로 SpringSecurityConfiguration이나 HttpSecurity 설정 등을 처리해 다양한 필수 구성 요소(Bean)들을 자동으로 불러오거나 설정할 수 있는 기반을 마련함
+```
+
+---
+
+작성 후 import까지 완료해 준 후 실행해 보면?
+
+![실행 성공](images/image-120.png)  
+정상적으로 실행된 것을 확인할 수 있다.  
+
+이제 Postman으로 확인 해 보면
+
