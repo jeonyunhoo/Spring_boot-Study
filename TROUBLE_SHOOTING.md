@@ -267,3 +267,32 @@ Spring에서 자동적으로 생성하는 URL들은 내가 작성한 코드보�
 
 ### 기억하기
 항상 어노테이션 기억하기, 이번 뿐이 아닌 항상 기억하기. 어떤 종속성을 넣었는냐에 따라 달라지니 항상 재차 확인 할 것
+
+---
+
+## ninth Truble
+
+### 문제 상황
+POST 요청, 회원가입 시 SQLExecption발생
+
+### 문제 내용 
+java.sql.SQLException: Field 'userId' doesn't have a default value  
+와 같은 에러 문장과 함께 403에러 발산
+
+#### 생각해보기
+오류 구문에서 알 수 있는 기본값 부제
+    -> 기본값이 필요한 필드인가(아님)
+    -> SQL필드 구문의 오류였는가(아님)
+    -> Controller, Service의 문제도 없음을 확인
+    -> Config에서 '/user'가 없는 지 확인(있음)
+    -> 확인용 구문을 작성해서 JSON데이터가 문제없이 들어옴을 확인 함
+    -> Hibenate의 insert구문을 확인
+    -> 문제 발견
+
+---
+
+### 해결법
+Hibenate가 필드명을 스네이크 케이스로 작성하지 않게 하도록 'application.properties'를 수정, 혹은 SQL문 갈아엎기
+
+### 기억하기
+Hibenate는 SQL에서 실행시키기 위한 구문을 만들 때 변수명(필드명)을 스네이크 케이스로 변경하니 SQL수준에서 스네이크 케이스를 이용하거나 'application.properties'수준에서 변형하지 않도록 변경해 주어야 한다.
