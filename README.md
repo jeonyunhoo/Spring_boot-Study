@@ -1613,3 +1613,118 @@ com.practice.springbootpractice8all.service.UserService의 생성자에서 첫 �
 
 이제 Postman으로 확인 해 보면
 
+---
+
+문제 상황 발생
+
+POST요청으로 회원가입 절차를 밟는 도중 에러
+
+java.sql.SQLException: Field 'userId' doesn't have a default value  
+와우 그냥 날 정말 기쁘게 해 주는구나!
+
+이번에는 또 뭐가 문제인지 하나하나 뜯어보자, 오류 구문을 보아하니 기본값을 운운하는데, TodoUser클래스의 필드를 확인 해 보면
+```
+@NotBlank(message = "유저 아이디는 비어있을 수 없습니다.")
+@Column(length = 50, unique = true)
+private String userId;
+```
+음... 아무리 봐도 기본 값을 받아야 하는 것은 없는 것 같다.  
+그럼 403에러니까 권한을 안 줬나?  
+![POST, 회원가입](images/image-121.png)  
+```
+.requestMatchers("/user", "/login", "/mypage", "/logout", "/todo", "/todo/*", "/todos")
+```
+이미 있는데..
+
+그럼 뭐가 문제지? SQLExecption이니까 SQL 구문 오류인가?  
+```
+create table todo_user_a(
+	
+    id bigint primary key auto_increment,
+    userId varchar(50) not null unique,
+    userName varchar(50) not null,
+    userPassword varchar(255) not null
+);
+```
+딱히 문제는 없어 보인다.  
+
+진짜 뭐가 문제지?  
+
+```
+@PostMapping("/user")
+public void createUser(@RequestBody TodoUser todoUser) {
+
+    userService.saveUser(todoUser);
+}
+```
+Contorller문제 없음
+
+```
+public void saveUser(TodoUser todoUser) {
+
+    String encodedPass = passwordEncoder.encode(todoUser.getUserPassword());
+    todoUser.setUserPassword(encodedPass);
+
+    userRepository.save(todoUser);
+}
+```
+Service도 문제 없음
+
+그럼 대체 뭐가 문제냐, 기본값이 없다는데 그럼 값이 전달되지 못 한 건가? 싶으니
+```
+public void saveUser(TodoUser todoUser) {
+
+    System.out.println("받은 userId: " + todoUser.getUserId());
+    System.out.println("받은 userName: " + todoUser.getUserName());
+    System.out.println("받은 userPassword: " + todoUser.getUserPassword());
+
+    String encodedPass = passwordEncoder.encode(todoUser.getUserPassword());
+    todoUser.setUserPassword(encodedPass);
+
+    userRepository.save(todoUser);
+}
+```
+이렇게 하고 실행 해 보면  
+![intellij에러 구문](images/image-122.png)  
+음... 아니 정상적으로 받아 놓고 뭐가 문젠데... 라고 생각했는데 바로 밑 Hibernate 구문을 보니까
+```
+insert into todo_user_a (user_id, user_name, user_password) values(?,?,?)
+```
+뭔가 잘못됨을 바로 알 수 있다.  
+내가 작성한 SQL필드는 'userId, userName, userPassword'등 단어와 단어를 대문자로 이어주는 카멜 케이스 방식으로 작성하였지만 Hibernate의 기본적인 내부 구조로 인해 스네이크 케이스로 변형하여 내가 작성 한 SQL문과 일치하지 않게 되어 일어난 문제로 보인다.  
+얘는 왜 시키지도 않은 짓을 해서 날 힘들게 할까..
+
+이걸 고치는 방법은 두 가지 정도가 있는데
+
+첫 번째, SQL테이블을 통째로 버린 뒤 스네이크 케이스 방식으로 다시 작성한다.  
+두 번째, 그 application? 파일에 Hibenate가 스네이크 케이스로 변경하지 않도록 설정한다.  
+
+나는 무식하게 SQL문 하나하나 뜯어고치겠다. 대규모 서버이거나 필드가 많으면 모르겠는데 적기도 하고, 다음에 할 때도 스네이크 케이스로 쓰기만 하면 설정을 따로 건들 이유는 없으니까.  
+
+---
+
+![POST 회원가입](images/image-123.png)  
+난 결국 승리한다. 이 개같은 Spring boot야  
+결과적으로 성공한 모습이다. 로그인 후 todo작성 까지 실행 해 보면  
+
+![POST 로그인](images/image-124.png)  
+로그인도 가볍게 성공하고  
+
+![GET 로그인 확인](images/image-125.png)  
+로그인 확인 까지 진행해 준 후
+
+![POST todo등록 실패](images/image-126.png)  
+아
+
+![intellij 에러 코드](images/image-127.png)  
+그래도 아까와 같은 문제이니 금방 풀 수 있다.  
+이번에도 필드명이 같지 않아서 일어난 문제로 보이는데  
+```
+id bigint not null,
+```
+외래키로 지정된 이 친구가 문제이니 'id'를 'user_id'로 변경해 주면 끝이다.  
+
+![POST todo등록 성공](images/image-128.png)  
+재로그인 후 성공한 모습  
+
+이렇게 장장 약 일주일 걸린 'All'프로잭트 **완**
