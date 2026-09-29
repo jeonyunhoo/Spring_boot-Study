@@ -17,7 +17,7 @@ public class Todo {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long todoId;
 
-    @NotBlank
+    @NotBlank(message = "내용이 비어있을 수 없습니다.")
     @Column(length = 255)
     private String todoDetail;
 

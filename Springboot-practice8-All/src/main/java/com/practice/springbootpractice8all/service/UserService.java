@@ -18,6 +18,10 @@ public class UserService {
 
     public void saveUser(TodoUser todoUser) {
 
+        System.out.println("받은 userId: " + todoUser.getUserId());
+        System.out.println("받은 userName: " + todoUser.getUserName());
+        System.out.println("받은 userPassword: " + todoUser.getUserPassword());
+
         String encodedPass = passwordEncoder.encode(todoUser.getUserPassword());
         todoUser.setUserPassword(encodedPass);
 

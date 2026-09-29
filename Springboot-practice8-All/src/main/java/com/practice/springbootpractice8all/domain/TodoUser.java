@@ -19,15 +19,15 @@ public class TodoUser {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
-    @NotBlank
+    @NotBlank(message = "유저 아이디는 비어있을 수 없습니다.")
     @Column(length = 50, unique = true)
     private String userId;
 
-    @NotBlank
+    @NotBlank(message = "유저 이름은 비어있을 수 없습니다.")
     @Column(length = 50)
     private String userName;
 
-    @NotBlank
+    @NotBlank(message = "비밀번호는 비어있을 수 없습니다.")
     @Column(length = 255)
     private String userPassword;
 
