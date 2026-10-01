@@ -1791,3 +1791,22 @@ provider, providerId. 얘들이 이제 처음 보는 친구들인데 뭐냐? 하
 뭐 나머지는 다 아는 거니까 짧게 설명하면  
 newUser를 만들어 저장해야 할 값을 담아 repository에 저장한다. 정도로 이해하면 될 것 같다.  
 
+그럼 이제 구글 로그인을 위해 API를 받아오기 위해 구글 클라우드에 접속  
+![구글 클라우드 OAuth2클라이언트](images/image-131.png)  
+요로코롬 만들어준 후 클라이언트 ID와 시크릿 ID를 받아와 application.properties에 작성해 준다.  
+*주의*: 시크릿 ID는 공개되면 안 되는 중요 정보이기에 github 또는 다른 곳에 올리는 것에 유의해야 한다.(클라이언트 ID도 중요한 정보임)
+
+그런 다음 받아온 정보를 처리하기 위한 새로운 서비스를 정의해 준다.  
+![CustomOAuth2UserService](images/image-132.png)  
+하나하나 뜯어서 정리해 보면
+
+1. extends DefaultOAuth2UserService: 구글 로그인이 성공하면 기본적으로 하는 일(정보 가져오기)은 그대로 하되, 그 과정 중간에 내가 원하는 동작을 집어 넣는다는 의미
+2. OAuth2User oAuth2User = super...: 부모가 하던 일 그대로를 하며 oAuth2User에 모든 값을 집어넣음
+3. userRequest.getClientRegistration().getRegistrationId(): application.properties에서 registration.google이라고 썼던 google이라는 이름을 꺼내옴. 이 값이 provider가 됨
+4. oAuth2User.getAttribute("sub"):구글이 주는 정보 중 "sub"라는 키가 바로 구글이 부여한 고유 Id, 위에서 미처 설명하지 못한 providerId가 됨
+5. oAuth2User.getAttribute("email"): 이메일을 꺼내옴
+6. userService.socialFindUser(...): userService에서 만든 메서드를 호출하여 DB에서 찾거나 생성하는 작동을 실행
+
+그런데 여기서 질문, 'userService.socialFindUser'의 반환값을 저장하는 todoUser는 어느곳에서도 사용되지 않고 그냥 넘어가는데 대체 왜 그런거냐?  
+일단 socialFindUser는 반환값이 있기 때문에 어딘가에 저장해야 하기도 하고, 저걸 안 부르면 DB와의 연결이 불가능하기에 피차 불러와야 하는 단계임. 그럼에도 저장된 값을 사용하지 않고 넘기는 것은 이해가 안 되는데... 그럼 이제 저 친구를 써먹기 위해 다음 단계를 실행할 차례임
+
