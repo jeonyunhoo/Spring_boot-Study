@@ -41,7 +41,6 @@ public class UserService {
 
     public void updateUser(long id, TodoUser changeThing) {
 
-
     }
 
     public void deleteUser(long id) {
